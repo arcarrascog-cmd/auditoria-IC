@@ -211,8 +211,12 @@
     <div class="checklist" id="checklistBox"></div>
 
     <div class="field" style="margin-bottom:16px;">
-      <label data-i18n="lblObs">Observaciones</label>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+        <label data-i18n="lblObs" style="margin-bottom:0;">Observaciones</label>
+        <button type="button" class="btn-ghost btn-sm" id="btnGenResumen" data-i18n="btnGenResumen" style="margin:0;">Generar resumen automático</button>
+      </div>
       <textarea id="fObs" placeholder=""></textarea>
+      <div class="hint" data-i18n="hintGenResumen">El resumen se redacta a partir de tus respuestas del checklist. Puedes editarlo libremente antes de guardar.</div>
     </div>
 
     <button class="btn-primary" id="btnGuardar" data-i18n="btnGuardar">Guardar revisión</button>
@@ -353,6 +357,20 @@ const I18N = {
     periodPrefix:'Período: ',
     checklistTitle:'Checklist de validación', checklistSub:'Responde Sí / No / N-A para cada punto.',
     lblObs:'Observaciones', phObs:'Detalle de hallazgos, remediaciones aplicadas, contexto adicional…',
+    btnGenResumen:'Generar resumen automático',
+    hintGenResumen:'El resumen se redacta a partir de tus respuestas del checklist. Puedes editarlo libremente antes de guardar.',
+    confirmReemplazarObs:'Ya escribiste algo en Observaciones. ¿Reemplazarlo con el resumen automático?',
+    alertResumenSinRespuestas:'Responde al menos un punto del checklist para poder generar el resumen.',
+    sumIntro:(control,estandar,frecuencia,responsable,fecha,dc,periodo)=>`La revisión de ${control} (${estandar}, frecuencia ${frecuencia}), realizada por ${responsable} el ${fecha}${dc?` en el Data Center ${dc}`:''}, cubrió el período ${periodo}.`,
+    sumCumplidos:(lista)=>`Se cumplieron correctamente los siguientes puntos: ${lista}.`,
+    sumIncumplidos:(lista)=>`No se cumplieron los siguientes puntos: ${lista}.`,
+    sumNA:(lista)=>`No aplicaron los puntos: ${lista}.`,
+    sumDesviacionesConRemediacion:'Se identificaron desviaciones durante la revisión, las cuales ya cuentan con una acción de remediación documentada.',
+    sumDesviacionesSinRemediacion:'Se identificaron desviaciones durante la revisión que aún no cuentan con una acción de remediación documentada.',
+    sumSinDesviaciones:'No se identificaron desviaciones durante la revisión.',
+    sumResultado:(estado)=>`En base a lo anterior, el resultado de esta revisión es: ${estado}.`,
+    sumIncompleto:(n)=>`Quedan ${n} punto(s) del checklist sin responder; el resumen se completará una vez terminados.`,
+    joinY:' y ',
     btnGuardar:'Guardar revisión', btnGuardarCambios:'Guardar cambios', btnCancelar:'Cancelar edición',
     btnDescargarActual:'Descargar informe de este checklist',
     alertDescargarIncompleto:'Responde al menos un punto del checklist antes de descargar el informe.',
@@ -414,6 +432,20 @@ const I18N = {
     periodPrefix:'Period: ',
     checklistTitle:'Validation checklist', checklistSub:'Answer Yes / No / N-A for each item.',
     lblObs:'Observations', phObs:'Findings detail, remediations applied, additional context…',
+    btnGenResumen:'Generate automatic summary',
+    hintGenResumen:'The summary is drafted from your checklist answers. You can freely edit it before saving.',
+    confirmReemplazarObs:'You already wrote something in Observations. Replace it with the automatic summary?',
+    alertResumenSinRespuestas:'Answer at least one checklist item to generate the summary.',
+    sumIntro:(control,estandar,frecuencia,responsable,fecha,dc,periodo)=>`The review of ${control} (${estandar}, ${frecuencia} frequency), carried out by ${responsable} on ${fecha}${dc?` at Data Center ${dc}`:''}, covered the period ${periodo}.`,
+    sumCumplidos:(lista)=>`The following items were correctly met: ${lista}.`,
+    sumIncumplidos:(lista)=>`The following items were not met: ${lista}.`,
+    sumNA:(lista)=>`The following items did not apply: ${lista}.`,
+    sumDesviacionesConRemediacion:'Deviations were identified during the review, and they already have a documented remediation action.',
+    sumDesviacionesSinRemediacion:'Deviations were identified during the review that do not yet have a documented remediation action.',
+    sumSinDesviaciones:'No deviations were identified during the review.',
+    sumResultado:(estado)=>`Based on the above, the result of this review is: ${estado}.`,
+    sumIncompleto:(n)=>`There are ${n} checklist item(s) left unanswered; the summary will be completed once they are finished.`,
+    joinY:' and ',
     btnGuardar:'Save review', btnGuardarCambios:'Save changes', btnCancelar:'Cancel editing',
     btnDescargarActual:'Download this checklist report',
     alertDescargarIncompleto:'Answer at least one checklist item before downloading the report.',
@@ -475,6 +507,20 @@ const I18N = {
     periodPrefix:'Período: ',
     checklistTitle:'Checklist de validação', checklistSub:'Responda Sim / Não / N/A para cada item.',
     lblObs:'Observações', phObs:'Detalhe de achados, remediações aplicadas, contexto adicional…',
+    btnGenResumen:'Gerar resumo automático',
+    hintGenResumen:'O resumo é redigido a partir das suas respostas do checklist. Você pode editá-lo livremente antes de salvar.',
+    confirmReemplazarObs:'Você já escreveu algo em Observações. Substituir pelo resumo automático?',
+    alertResumenSinRespuestas:'Responda pelo menos um item do checklist para gerar o resumo.',
+    sumIntro:(control,estandar,frecuencia,responsable,fecha,dc,periodo)=>`A revisão de ${control} (${estandar}, frequência ${frecuencia}), realizada por ${responsable} em ${fecha}${dc?` no Data Center ${dc}`:''}, abrangeu o período ${periodo}.`,
+    sumCumplidos:(lista)=>`Os seguintes pontos foram cumpridos corretamente: ${lista}.`,
+    sumIncumplidos:(lista)=>`Os seguintes pontos não foram cumpridos: ${lista}.`,
+    sumNA:(lista)=>`Os seguintes pontos não se aplicaram: ${lista}.`,
+    sumDesviacionesConRemediacion:'Foram identificados desvios durante a revisão, os quais já possuem uma ação de remediação documentada.',
+    sumDesviacionesSinRemediacion:'Foram identificados desvios durante a revisão que ainda não possuem uma ação de remediação documentada.',
+    sumSinDesviaciones:'Não foram identificados desvios durante a revisão.',
+    sumResultado:(estado)=>`Com base no exposto, o resultado desta revisão é: ${estado}.`,
+    sumIncompleto:(n)=>`Restam ${n} item(ns) do checklist sem resposta; o resumo será concluído assim que forem finalizados.`,
+    joinY:' e ',
     btnGuardar:'Salvar revisão', btnGuardarCambios:'Salvar alterações', btnCancelar:'Cancelar edição',
     btnDescargarActual:'Baixar relatório deste checklist',
     alertDescargarIncompleto:'Responda pelo menos um item do checklist antes de baixar o relatório.',
@@ -691,6 +737,75 @@ function updatePeriodPreview(){
   const mH = parseInt(document.getElementById('fMesHasta').value,10);
   document.getElementById('periodPreview').textContent = t('periodPrefix') + periodLabel(anio, mD, mH);
 }
+
+function joinList(arr){
+  const list = arr.filter(Boolean);
+  if(!list.length) return '';
+  if(list.length===1) return list[0];
+  return list.slice(0,-1).join(', ') + t('joinY') + list[list.length-1];
+}
+
+function buildAutoSummaryText(){
+  const checklist = getChecklistValues();
+  const answered = CHECKLIST_DEFS.filter(c => checklist[c.id]);
+  if(!answered.length) return null;
+
+  let responsable = document.getElementById('fResponsable').value;
+  if(responsable === '__otro__'){ responsable = document.getElementById('fResponsableOtro').value.trim(); }
+  const fecha = document.getElementById('fFecha').value ? formatFechaEs(document.getElementById('fFecha').value) : '—';
+  const estandarCode = document.getElementById('fEstandar').value;
+  const frecuenciaCode = document.getElementById('fFrecuencia').value;
+  const dataCenter = document.getElementById('fDataCenter').value;
+  const controlLabel = document.getElementById('fControl').value.trim();
+  const anio = document.getElementById('fAnio').value;
+  const mDesde = parseInt(document.getElementById('fMesDesde').value,10);
+  const mHasta = parseInt(document.getElementById('fMesHasta').value,10);
+
+  const controlTxt = controlLabel || (currentLang==='en'?'the control':(currentLang==='pt'?'o controle':'el control'));
+  const estandarTxt = estandarCode ? estName(estandarCode) : '—';
+  const frecuenciaTxt = frecuenciaCode ? freqName(frecuenciaCode).toLowerCase() : '—';
+  const periodo = periodLabel(anio, mDesde, mHasta);
+
+  const cumplidos = [], incumplidos = [], noAplica = [];
+  CHECKLIST_DEFS.forEach(c=>{
+    const v = checklist[c.id];
+    if(v==='yes') cumplidos.push(c.req[currentLang]);
+    else if(v==='no') incumplidos.push(c.req[currentLang]);
+    else if(v==='na') noAplica.push(c.req[currentLang]);
+  });
+
+  const parts = [];
+  parts.push(t('sumIntro')(controlTxt, estandarTxt, frecuenciaTxt, responsable||'—', fecha, dataCenter, periodo));
+  if(cumplidos.length) parts.push(t('sumCumplidos')(joinList(cumplidos)));
+  if(incumplidos.length) parts.push(t('sumIncumplidos')(joinList(incumplidos)));
+  if(noAplica.length) parts.push(t('sumNA')(joinList(noAplica)));
+
+  const deviationsFound = checklist.c5 === 'yes';
+  const remediated = checklist.c6 === 'yes';
+  if(deviationsFound){
+    parts.push(remediated ? t('sumDesviacionesConRemediacion') : t('sumDesviacionesSinRemediacion'));
+  } else if(checklist.c5 === 'no'){
+    parts.push(t('sumSinDesviaciones'));
+  }
+
+  if(answered.length < CHECKLIST_DEFS.length){
+    parts.push(t('sumIncompleto')(CHECKLIST_DEFS.length - answered.length));
+  } else {
+    parts.push(t('sumResultado')(estadoLabel(computeEstado(checklist))));
+  }
+
+  return parts.join(' ');
+}
+
+document.getElementById('btnGenResumen').addEventListener('click', ()=>{
+  const summary = buildAutoSummaryText();
+  if(summary === null){ alert(t('alertResumenSinRespuestas')); return; }
+  const obsBox = document.getElementById('fObs');
+  if(obsBox.value.trim() && obsBox.value.trim() !== summary){
+    if(!confirm(t('confirmReemplazarObs'))) return;
+  }
+  obsBox.value = summary;
+});
 
 function resetForm(){
   editingId = null;
