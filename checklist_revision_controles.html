@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#522582">
+<title>Checklist de Revisión de Controles — ODATA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --purple:#522582; --purple-dark:#3a1a5e; --green:#33D592; --green-dark:#22a873;
+    --bg:#F6F5F9; --panel:#FFFFFF; --panel-alt:#FBFAFD; --ink:#211A2B; --ink-soft:#6B6479; --line:#E4E1EC;
+    --red:#D64545; --amber:#E8A33D; --amber-bg:#FCF3E3; --red-bg:#FBEAEA;
+    --green-bg:#E9FAF3; --gray-bg:#F0EFF4; font-size:15px;
+  }
+  :root[data-theme="dark"]{
+    --purple:#9C6ADE; --purple-dark:#7C4FB0; --green:#33D592; --green-dark:#22a873;
+    --bg:#171320; --panel:#221D30; --panel-alt:#2A2438; --ink:#EDEAF6; --ink-soft:#B3A7CE; --line:#3B3350;
+    --red:#E57373; --amber:#E8A33D; --amber-bg:#3A2F1A; --red-bg:#3A1F22;
+    --green-bg:#16332A; --gray-bg:#2A2438;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);transition:background .2s,color .2s;}
+  .app{max-width:1180px;margin:0 auto;padding:0 20px 60px;}
+  header.top{background:linear-gradient(120deg,var(--purple) 0%,var(--purple-dark) 100%);color:#fff;padding:26px 20px;margin-bottom:24px;}
+  header.top .inner{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  header.top h1{font-size:20px;margin:0 0 4px;font-weight:700;letter-spacing:.2px;}
+  header.top p{margin:0;font-size:13px;opacity:.85;}
+  .head-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .tag-pill{background:var(--green);color:var(--purple-dark);font-weight:700;font-size:11px;letter-spacing:.5px;padding:4px 10px;border-radius:20px;text-transform:uppercase;}
+  .lang-select{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:6px 26px 6px 12px;font-size:12px;font-weight:700;cursor:pointer;appearance:none;-webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='white'/></svg>");
+    background-repeat:no-repeat;background-position:right 10px center;}
+  .lang-select option{color:#211A2B;}
+  .theme-toggle{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+  .theme-toggle svg{width:15px;height:15px;}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:20px;}
+  .card h3{margin:0 0 4px;font-size:16px;color:var(--purple-dark);}
+  .card .sub{margin:0 0 18px;font-size:13px;color:var(--ink-soft);}
+
+  .info-box{background:var(--gray-bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:12.5px;color:var(--ink-soft);margin-bottom:0;line-height:1.6;}
+  .info-box b{color:var(--purple-dark);}
+
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;padding:9px 16px;font-size:13px;font-weight:600;transition:.15s;}
+  .btn-primary{background:var(--purple);color:#fff;}
+  .btn-primary:hover{background:var(--purple-dark);}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-green{background:var(--green);color:var(--purple-dark);}
+  .btn-green:hover{background:var(--green-dark);color:#fff;}
+  .btn-ghost{background:transparent;color:var(--purple);border:1px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--purple);}
+  .btn-sm{padding:6px 11px;font-size:12px;border-radius:7px;}
+  .btn-danger-ghost{background:transparent;color:var(--red);border:1px solid var(--line);}
+  .btn-danger-ghost:hover{border-color:var(--red);background:var(--red-bg);}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+  .grid.g2{grid-template-columns:1fr 1fr;}
+  .grid.g4{grid-template-columns:1fr 1fr 1fr 1fr;}
+  @media (max-width:800px){ .grid, .grid.g2, .grid.g4{grid-template-columns:1fr;} }
+  .field label{display:block;font-size:11.5px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
+  .field select, .field input[type=date], .field input[type=text], .field input[type=number]{
+    width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--line);font-size:13.5px;background:var(--panel);color:var(--ink);
+  }
+  .field .hint{font-size:11px;color:var(--ink-soft);opacity:.8;margin-top:4px;}
+  .period-preview{font-size:12.5px;color:var(--purple-dark);font-weight:700;margin-top:8px;}
+
+  .checklist{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:16px;}
+  .cl-row{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel);}
+  .cl-row:last-child{border-bottom:none;}
+  .cl-row:nth-child(even){background:var(--panel-alt);}
+  .cl-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--gray-bg);color:var(--purple-dark);font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+  .cl-text{flex:1;font-size:13px;line-height:1.4;}
+  .cl-text .req{display:block;font-size:10.5px;color:var(--ink-soft);margin-top:2px;text-transform:uppercase;letter-spacing:.3px;}
+  .cl-toggle{display:flex;gap:4px;flex-shrink:0;}
+  .cl-btn{min-width:38px;height:30px;padding:0 8px;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--ink-soft);font-size:12px;font-weight:700;cursor:pointer;}
+  .cl-btn:hover{border-color:var(--purple);}
+  .cl-btn.si.active{background:var(--green);border-color:var(--green-dark);color:#fff;}
+  .cl-btn.no.active{background:var(--red);border-color:var(--red);color:#fff;}
+  .cl-btn.na.active{background:var(--ink-soft);border-color:var(--ink-soft);color:#fff;}
+
+  textarea{width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--line);font-size:13px;font-family:inherit;resize:vertical;min-height:60px;background:var(--panel);color:var(--ink);}
+
+  .summary-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+  @media (max-width:800px){ .summary-row{grid-template-columns:repeat(2,1fr);} }
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+  .stat .n{font-size:24px;font-weight:800;line-height:1;color:var(--purple-dark);}
+  .stat .l{font-size:11px;color:var(--ink-soft);margin-top:6px;text-transform:uppercase;letter-spacing:.4px;}
+  .stat.ok .n{color:var(--green-dark);}
+  .stat.bad .n{color:var(--red);}
+
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  .tab{padding:7px 13px;border-radius:20px;font-size:12.5px;font-weight:600;background:var(--panel);border:1px solid var(--line);color:var(--ink-soft);cursor:pointer;}
+  .tab.active{background:var(--purple);color:#fff;border-color:var(--purple);}
+  .tab.active.st-bad{background:var(--red);border-color:var(--red);}
+  .tab.active.st-ok{background:var(--green-dark);border-color:var(--green-dark);}
+
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+  .toolbar input[type=text]{padding:9px 12px;border-radius:8px;border:1px solid var(--line);font-size:13px;width:240px;background:var(--panel);color:var(--ink);}
+  .toolbar .actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  thead th{background:var(--panel-alt);font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-soft);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);}
+  tbody td{padding:9px 12px;border-bottom:1px solid var(--line);font-size:12.5px;vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:var(--panel-alt);cursor:pointer;}
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10.5px;font-weight:700;}
+  .badge.ok{background:var(--green-bg);color:#166847;}
+  :root[data-theme="dark"] .badge.ok{color:#5FE0AC;}
+  .badge.bad{background:var(--red-bg);color:#a83232;}
+  :root[data-theme="dark"] .badge.bad{color:#FF9E9E;}
+  .badge.freq{background:var(--gray-bg);color:var(--ink-soft);}
+  .row-detail{background:var(--panel-alt);}
+  .row-detail td{padding:14px 20px;}
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;font-size:12.5px;margin-bottom:10px;}
+  .detail-grid div b{color:var(--purple-dark);}
+  .detail-obs{font-size:12.5px;color:var(--ink-soft);font-style:italic;}
+  .empty-state{text-align:center;padding:50px 20px;color:var(--ink-soft);font-size:13px;}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="inner">
+    <div>
+      <h1 data-i18n="headerTitle">Checklist de Revisión de Controles</h1>
+      <p data-i18n="headerSub">Registro trimestral / semestral / anual de controles internos — ISO · SOC · PCI · Zero Waste</p>
+    </div>
+    <div class="head-right">
+      <span class="tag-pill">SGI · ODATA</span>
+      <select class="lang-select" id="langSelect">
+        <option value="es">ES</option>
+        <option value="en">EN</option>
+        <option value="pt">PT</option>
+      </select>
+      <button class="theme-toggle" id="themeToggle" title="Cambiar tema"></button>
+    </div>
+  </div>
+</header>
+
+<div class="app">
+
+  <div class="card">
+    <h3 data-i18n="infoTitle">¿Qué busca este registro?</h3>
+    <p class="sub" data-i18n="infoSub">Criterio general para revisiones periódicas de control</p>
+    <div class="info-box" data-i18n="infoBody">
+      Muchos estándares y certificaciones (ISO 9001, ISO 14001, ISO 45001, ISO 27001, ISO 20000-1, ISO 50001, SOC 2, PCI DSS, Zero Waste, TRUE, entre otros) exigen validar periódicamente que los controles internos se estén ejecutando según lo definido: quién los revisó, si se cumplió el plazo, si hubo desviaciones y si quedaron remediadas y documentadas. Esta herramienta registra exactamente esos elementos para cualquier control o marco que necesites monitorear, sin importar la certificación de origen.
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 id="formTitle" data-i18n="formTitleNew">Registrar nueva revisión</h3>
+    <p class="sub" data-i18n="formSub">Completa los datos y el checklist, luego guarda el registro.</p>
+
+    <div class="grid g4">
+      <div class="field">
+        <label data-i18n="lblResponsable">Responsable</label>
+        <select id="fResponsable">
+          <option value="" data-i18n="optSelect">— Selecciona —</option>
+          <option value="Alejandro Carrasco">Alejandro Carrasco</option>
+          <option value="Paula Polanco">Paula Polanco</option>
+          <option value="Heide Coelho">Heide Coelho</option>
+          <option value="__otro__" data-i18n="optOtro">Otro (especificar)</option>
+        </select>
+        <input type="text" id="fResponsableOtro" placeholder="" style="margin-top:8px;display:none;">
+      </div>
+      <div class="field">
+        <label data-i18n="lblFecha">Fecha de revisión</label>
+        <input type="date" id="fFecha">
+      </div>
+      <div class="field">
+        <label data-i18n="lblEstandar">Estándar / Marco</label>
+        <select id="fEstandar"></select>
+      </div>
+      <div class="field">
+        <label data-i18n="lblFrecuencia">Frecuencia</label>
+        <select id="fFrecuencia"></select>
+      </div>
+    </div>
+
+    <div class="grid g2">
+      <div class="field">
+        <label data-i18n="lblControl">Control o actividad revisada</label>
+        <input type="text" id="fControl" placeholder="">
+        <div class="hint" id="hintControl"></div>
+      </div>
+      <div class="field">
+        <label data-i18n="lblAnio">Año del período</label>
+        <input type="number" id="fAnio" min="2024" max="2035">
+      </div>
+    </div>
+
+    <div class="grid g2">
+      <div class="field">
+        <label data-i18n="lblDesde">Período revisado — desde</label>
+        <select id="fMesDesde"></select>
+      </div>
+      <div class="field">
+        <label data-i18n="lblHasta">Período revisado — hasta</label>
+        <select id="fMesHasta"></select>
+      </div>
+    </div>
+    <div class="period-preview" id="periodPreview">—</div>
+
+    <h3 style="margin-top:22px;" data-i18n="checklistTitle">Checklist de validación</h3>
+    <p class="sub" data-i18n="checklistSub">Responde Sí / No / N-A para cada punto.</p>
+    <div class="checklist" id="checklistBox"></div>
+
+    <div class="field" style="margin-bottom:16px;">
+      <label data-i18n="lblObs">Observaciones</label>
+      <textarea id="fObs" placeholder=""></textarea>
+    </div>
+
+    <button class="btn-primary" id="btnGuardar" data-i18n="btnGuardar">Guardar revisión</button>
+    <button class="btn-ghost" id="btnCancelarEdicion" style="display:none;margin-left:8px;" data-i18n="btnCancelar">Cancelar edición</button>
+  </div>
+
+  <div class="summary-row" id="summaryRow"></div>
+
+  <div class="card">
+    <h3 data-i18n="tableTitle">Revisiones registradas</h3>
+    <p class="sub" data-i18n="tableSub">Filtra por responsable o resultado, y exporta el reporte ejecutivo.</p>
+
+    <div class="tabs" id="respTabs"></div>
+    <div class="tabs" id="statusTabs"></div>
+
+    <div class="toolbar">
+      <input type="text" id="searchBox">
+      <div class="actions">
+        <button class="btn-ghost btn-sm" id="btnReset" data-i18n="btnReset">Borrar todo</button>
+        <button class="btn-green btn-sm" id="btnExportExcel" data-i18n="btnExcel">Descargar Excel</button>
+        <button class="btn-primary btn-sm" id="btnExportPdf" data-i18n="btnPdf">Descargar PDF ejecutivo</button>
+      </div>
+    </div>
+
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th data-i18n="thFecha">Fecha revisión</th>
+          <th data-i18n="thResponsable">Responsable</th>
+          <th data-i18n="thEstandar">Estándar</th>
+          <th data-i18n="thControl">Control revisado</th>
+          <th data-i18n="thFrecuencia">Frecuencia</th>
+          <th data-i18n="thPeriodo">Período revisado</th>
+          <th data-i18n="thChecklist">Checklist</th>
+          <th data-i18n="thResultado">Resultado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty-state" id="emptyState" style="display:none;" data-i18n="emptyState">Todavía no hay revisiones registradas. Completa el formulario de arriba para empezar.</div>
+  </div>
+
+</div>
+
+<script>
+/* ================= i18n ================= */
+const MESES = {
+  es:['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
+  en:['January','February','March','April','May','June','July','August','September','October','November','December'],
+  pt:['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+};
+
+const ESTANDARES = [
+  {code:'iso9001', es:'ISO 9001', en:'ISO 9001', pt:'ISO 9001'},
+  {code:'iso14001', es:'ISO 14001', en:'ISO 14001', pt:'ISO 14001'},
+  {code:'iso45001', es:'ISO 45001', en:'ISO 45001', pt:'ISO 45001'},
+  {code:'iso27001', es:'ISO 27001', en:'ISO 27001', pt:'ISO 27001'},
+  {code:'iso20000', es:'ISO/IEC 20000-1', en:'ISO/IEC 20000-1', pt:'ISO/IEC 20000-1'},
+  {code:'iso50001', es:'ISO 50001', en:'ISO 50001', pt:'ISO 50001'},
+  {code:'soc', es:'SOC 2', en:'SOC 2', pt:'SOC 2'},
+  {code:'pci', es:'PCI DSS', en:'PCI DSS', pt:'PCI DSS'},
+  {code:'zerowaste', es:'Zero Waste', en:'Zero Waste', pt:'Zero Waste'},
+  {code:'true', es:'TRUE Certification', en:'TRUE Certification', pt:'TRUE Certification'},
+  {code:'otro', es:'Otro', en:'Other', pt:'Outro'}
+];
+
+const FRECUENCIAS = [
+  {code:'trimestral', es:'Trimestral', en:'Quarterly', pt:'Trimestral'},
+  {code:'semestral', es:'Semestral', en:'Semi-annual', pt:'Semestral'},
+  {code:'anual', es:'Anual', en:'Annual', pt:'Anual'},
+  {code:'otra', es:'Otra', en:'Other', pt:'Outra'}
+];
+
+const CHECKLIST_DEFS = [
+  {id:'c1',
+    es:'La revisión se realizó dentro del plazo establecido para su frecuencia (no está vencida).',
+    en:'The review was completed within the deadline set for its frequency (not overdue).',
+    pt:'A revisão foi realizada dentro do prazo estabelecido para sua frequência (não está vencida).',
+    req:{es:'Oportunidad', en:'Timeliness', pt:'Tempestividade'}},
+  {id:'c2',
+    es:'La revisión fue efectuada por personal distinto al responsable de ejecutar el control revisado.',
+    en:'The review was performed by personnel other than those responsible for executing the reviewed control.',
+    pt:'A revisão foi realizada por pessoal diferente do responsável por executar o controle revisado.',
+    req:{es:'Independencia', en:'Independence', pt:'Independência'}},
+  {id:'c3',
+    es:'Se revisó evidencia suficiente y representativa del período correspondiente.',
+    en:'Sufficient and representative evidence for the corresponding period was reviewed.',
+    pt:'Foi revisada evidência suficiente e representativa do período correspondente.',
+    req:{es:'Cobertura de evidencia', en:'Evidence coverage', pt:'Cobertura de evidência'}},
+  {id:'c4',
+    es:'El control se ejecutó conforme al procedimiento o estándar aplicable.',
+    en:'The control was executed in accordance with the applicable procedure or standard.',
+    pt:'O controle foi executado conforme o procedimento ou padrão aplicável.',
+    req:{es:'Cumplimiento de procedimiento', en:'Procedure compliance', pt:'Conformidade com procedimento'}},
+  {id:'c5',
+    es:'Se identificaron desviaciones o incumplimientos durante la revisión.',
+    en:'Deviations or non-compliances were identified during the review.',
+    pt:'Foram identificados desvios ou não conformidades durante a revisão.',
+    req:{es:'Hallazgos', en:'Findings', pt:'Achados'}},
+  {id:'c6',
+    es:'Las desviaciones identificadas cuentan con acción de remediación documentada.',
+    en:'The identified deviations have a documented remediation action.',
+    pt:'Os desvios identificados possuem ação de remediação documentada.',
+    req:{es:'Remediación', en:'Remediation', pt:'Remediação'}},
+  {id:'c7',
+    es:'Se conserva evidencia o soporte de la revisión (capturas, reportes, actas, exportes).',
+    en:'Evidence or support for the review is kept (screenshots, reports, minutes, exports).',
+    pt:'É mantida evidência ou suporte da revisão (capturas, relatórios, atas, exportações).',
+    req:{es:'Documentación', en:'Documentation', pt:'Documentação'}},
+  {id:'c8',
+    es:'El resultado fue reportado y cuenta con aprobación/firma del responsable del control.',
+    en:'The result was reported and has approval/sign-off from the control owner.',
+    pt:'O resultado foi reportado e conta com aprovação/assinatura do responsável pelo controle.',
+    req:{es:'Aprobación', en:'Approval', pt:'Aprovação'}}
+];
+const MANDATORY_OK = ['c1','c2','c3','c4','c7','c8'];
+const RESP_LIST = ['Alejandro Carrasco','Paula Polanco','Heide Coelho'];
+
+const I18N = {
+  es:{
+    headerTitle:'Checklist de Revisión de Controles',
+    headerSub:'Registro trimestral / semestral / anual de controles internos — ISO · SOC · PCI · Zero Waste',
+    infoTitle:'¿Qué busca este registro?',
+    infoSub:'Criterio general para revisiones periódicas de control',
+    infoBody:'Muchos estándares y certificaciones (ISO 9001, ISO 14001, ISO 45001, ISO 27001, ISO 20000-1, ISO 50001, SOC 2, PCI DSS, Zero Waste, TRUE, entre otros) exigen validar periódicamente que los controles internos se estén ejecutando según lo definido: quién los revisó, si se cumplió el plazo, si hubo desviaciones y si quedaron remediadas y documentadas. Esta herramienta registra exactamente esos elementos para cualquier control o marco que necesites monitorear, sin importar la certificación de origen.',
+    formTitleNew:'Registrar nueva revisión',
+    formTitleEdit:'Editando revisión',
+    formSub:'Completa los datos y el checklist, luego guarda el registro.',
+    lblResponsable:'Responsable', optSelect:'— Selecciona —', optOtro:'Otro (especificar)',
+    phResponsableOtro:'Nombre y apellido',
+    lblFecha:'Fecha de revisión', lblEstandar:'Estándar / Marco', lblFrecuencia:'Frecuencia',
+    lblControl:'Control o actividad revisada',
+    phControl:'Ej: Revisión de logs diarios, auditoría interna de bodega, revisión de accesos…',
+    hintControl:'Describe libremente el control, tarea o rutina que estás validando.',
+    lblAnio:'Año del período',
+    lblDesde:'Período revisado — desde', lblHasta:'Período revisado — hasta',
+    periodPrefix:'Período: ',
+    checklistTitle:'Checklist de validación', checklistSub:'Responde Sí / No / N-A para cada punto.',
+    lblObs:'Observaciones', phObs:'Detalle de hallazgos, remediaciones aplicadas, contexto adicional…',
+    btnGuardar:'Guardar revisión', btnGuardarCambios:'Guardar cambios', btnCancelar:'Cancelar edición',
+    statTotal:'Revisiones registradas', statConformes:'Conformes', statNoConformes:'No conformes',
+    statIncompletos:'Incompletos', statPct:'% Cumplimiento',
+    tableTitle:'Revisiones registradas', tableSub:'Filtra por responsable o resultado, y exporta el reporte ejecutivo.',
+    searchPh:'Buscar por estándar, control, período u observaciones…',
+    btnReset:'Borrar todo', btnExcel:'Descargar Excel', btnPdf:'Descargar PDF ejecutivo',
+    thFecha:'Fecha revisión', thResponsable:'Responsable', thEstandar:'Estándar', thControl:'Control revisado',
+    thFrecuencia:'Frecuencia', thPeriodo:'Período revisado', thChecklist:'Checklist', thResultado:'Resultado',
+    emptyState:'Todavía no hay revisiones registradas. Completa el formulario de arriba para empezar.',
+    tabTodos:'Todos', statusConforme:'Conforme', statusNoConforme:'No conforme', statusIncompleto:'Incompleto',
+    btnEditar:'Editar', btnEliminar:'Eliminar', sinObs:'Sin observaciones.',
+    alertResponsable:'Selecciona o escribe el nombre del responsable.',
+    alertFecha:'Selecciona la fecha de revisión.',
+    alertEstandar:'Selecciona el estándar o marco.',
+    alertFrecuencia:'Selecciona la frecuencia.',
+    alertControl:'Escribe el control o actividad revisada.',
+    alertAnio:'Ingresa el año del período.',
+    confirmIncompleto:(n)=>`Dejaste ${n} punto(s) del checklist sin responder. El registro quedará marcado como "${I18N.es.statusIncompleto}". ¿Guardar de todas formas?`,
+    confirmReset:'Esto borrará TODAS las revisiones registradas en este navegador. ¿Continuar?',
+    confirmDelete:'¿Eliminar este registro de revisión? Esta acción no se puede deshacer.',
+    alertNoDataExport:'No hay revisiones registradas para exportar.',
+    pdfLoadError:'No se pudo cargar el complemento de tablas del PDF.',
+    pdfPrep:'Preparando PDF…', pdfGen:'Generando PDF…', pdfError:'No se pudo generar el PDF: ',
+    pdfTitle:'Reporte de Revisiones de Control — ODATA', pdfGenerated:'Generado',
+    pdfSummaryTitle:'RESUMEN EJECUTIVO',
+    pdfSummaryLine:(t,c,nc,i)=>`Revisiones registradas: ${t}    Conformes: ${c}    No conformes: ${nc}    Incompletos: ${i}`,
+    pdfPctLabel:'% Cumplimiento: ',
+    pdfExceptionsTitle:(n)=>`REVISIONES NO CONFORMES (${n})`,
+    pdfNoExceptions:'Sin hallazgos — todas las revisiones registradas están conformes.',
+    pdfDetailTitle:'DETALLE COMPLETO DE REVISIONES',
+    pdfColFecha:'Fecha', pdfColResponsable:'Responsable', pdfColEstandar:'Estándar', pdfColControl:'Control revisado',
+    pdfColPeriodo:'Período', pdfColObs:'Observaciones', pdfColFrecuencia:'Frecuencia', pdfColChecklist:'Checklist', pdfColResultado:'Resultado',
+    excelColObs:'Observaciones'
+  },
+  en:{
+    headerTitle:'Control Review Checklist',
+    headerSub:'Quarterly / semi-annual / annual log of internal controls — ISO · SOC · PCI · Zero Waste',
+    infoTitle:'What is this log for?',
+    infoSub:'General criteria for periodic control reviews',
+    infoBody:'Many standards and certifications (ISO 9001, ISO 14001, ISO 45001, ISO 27001, ISO 20000-1, ISO 50001, SOC 2, PCI DSS, Zero Waste, TRUE, among others) require periodically validating that internal controls are being carried out as defined: who reviewed them, whether the deadline was met, whether deviations occurred, and whether they were remediated and documented. This tool records exactly those elements for any control or framework you need to monitor, regardless of the certification it belongs to.',
+    formTitleNew:'Register a new review',
+    formTitleEdit:'Editing review',
+    formSub:'Fill in the details and the checklist, then save the record.',
+    lblResponsable:'Owner', optSelect:'— Select —', optOtro:'Other (specify)',
+    phResponsableOtro:'Full name',
+    lblFecha:'Review date', lblEstandar:'Standard / Framework', lblFrecuencia:'Frequency',
+    lblControl:'Control or activity reviewed',
+    phControl:'E.g.: Daily log review, warehouse internal audit, access review…',
+    hintControl:'Freely describe the control, task or routine you are validating.',
+    lblAnio:'Period year',
+    lblDesde:'Period reviewed — from', lblHasta:'Period reviewed — to',
+    periodPrefix:'Period: ',
+    checklistTitle:'Validation checklist', checklistSub:'Answer Yes / No / N-A for each item.',
+    lblObs:'Observations', phObs:'Findings detail, remediations applied, additional context…',
+    btnGuardar:'Save review', btnGuardarCambios:'Save changes', btnCancelar:'Cancel editing',
+    statTotal:'Reviews recorded', statConformes:'Compliant', statNoConformes:'Non-compliant',
+    statIncompletos:'Incomplete', statPct:'% Compliance',
+    tableTitle:'Recorded reviews', tableSub:'Filter by owner or result, and export the executive report.',
+    searchPh:'Search by standard, control, period or observations…',
+    btnReset:'Clear all', btnExcel:'Download Excel', btnPdf:'Download executive PDF',
+    thFecha:'Review date', thResponsable:'Owner', thEstandar:'Standard', thControl:'Control reviewed',
+    thFrecuencia:'Frequency', thPeriodo:'Period reviewed', thChecklist:'Checklist', thResultado:'Result',
+    emptyState:'No reviews recorded yet. Fill in the form above to get started.',
+    tabTodos:'All', statusConforme:'Compliant', statusNoConforme:'Non-compliant', statusIncompleto:'Incomplete',
+    btnEditar:'Edit', btnEliminar:'Delete', sinObs:'No observations.',
+    alertResponsable:"Select or type the owner's name.",
+    alertFecha:'Select the review date.',
+    alertEstandar:'Select the standard or framework.',
+    alertFrecuencia:'Select the frequency.',
+    alertControl:'Type the control or activity reviewed.',
+    alertAnio:'Enter the period year.',
+    confirmIncompleto:(n)=>`You left ${n} checklist item(s) unanswered. The record will be marked as "${I18N.en.statusIncompleto}". Save anyway?`,
+    confirmReset:'This will delete ALL reviews recorded in this browser. Continue?',
+    confirmDelete:'Delete this review record? This action cannot be undone.',
+    alertNoDataExport:'There are no recorded reviews to export.',
+    pdfLoadError:'Could not load the PDF table plugin.',
+    pdfPrep:'Preparing PDF…', pdfGen:'Generating PDF…', pdfError:'Could not generate the PDF: ',
+    pdfTitle:'Control Review Report — ODATA', pdfGenerated:'Generated',
+    pdfSummaryTitle:'EXECUTIVE SUMMARY',
+    pdfSummaryLine:(t,c,nc,i)=>`Reviews recorded: ${t}    Compliant: ${c}    Non-compliant: ${nc}    Incomplete: ${i}`,
+    pdfPctLabel:'% Compliance: ',
+    pdfExceptionsTitle:(n)=>`NON-COMPLIANT REVIEWS (${n})`,
+    pdfNoExceptions:'No findings — all recorded reviews are compliant.',
+    pdfDetailTitle:'FULL REVIEW DETAIL',
+    pdfColFecha:'Date', pdfColResponsable:'Owner', pdfColEstandar:'Standard', pdfColControl:'Control reviewed',
+    pdfColPeriodo:'Period', pdfColObs:'Observations', pdfColFrecuencia:'Frequency', pdfColChecklist:'Checklist', pdfColResultado:'Result',
+    excelColObs:'Observations'
+  },
+  pt:{
+    headerTitle:'Checklist de Revisão de Controles',
+    headerSub:'Registro trimestral / semestral / anual de controles internos — ISO · SOC · PCI · Zero Waste',
+    infoTitle:'Para que serve este registro?',
+    infoSub:'Critério geral para revisões periódicas de controle',
+    infoBody:'Muitos padrões e certificações (ISO 9001, ISO 14001, ISO 45001, ISO 27001, ISO 20000-1, ISO 50001, SOC 2, PCI DSS, Zero Waste, TRUE, entre outros) exigem validar periodicamente se os controles internos estão sendo executados conforme definido: quem revisou, se o prazo foi cumprido, se houve desvios e se foram remediados e documentados. Esta ferramenta registra exatamente esses elementos para qualquer controle ou norma que você precise monitorar, independentemente da certificação de origem.',
+    formTitleNew:'Registrar nova revisão',
+    formTitleEdit:'Editando revisão',
+    formSub:'Preencha os dados e o checklist, depois salve o registro.',
+    lblResponsable:'Responsável', optSelect:'— Selecione —', optOtro:'Outro (especificar)',
+    phResponsableOtro:'Nome completo',
+    lblFecha:'Data da revisão', lblEstandar:'Norma / Padrão', lblFrecuencia:'Frequência',
+    lblControl:'Controle ou atividade revisada',
+    phControl:'Ex: Revisão de logs diários, auditoria interna de armazém, revisão de acessos…',
+    hintControl:'Descreva livremente o controle, tarefa ou rotina que está validando.',
+    lblAnio:'Ano do período',
+    lblDesde:'Período revisado — de', lblHasta:'Período revisado — até',
+    periodPrefix:'Período: ',
+    checklistTitle:'Checklist de validação', checklistSub:'Responda Sim / Não / N/A para cada item.',
+    lblObs:'Observações', phObs:'Detalhe de achados, remediações aplicadas, contexto adicional…',
+    btnGuardar:'Salvar revisão', btnGuardarCambios:'Salvar alterações', btnCancelar:'Cancelar edição',
+    statTotal:'Revisões registradas', statConformes:'Conformes', statNoConformes:'Não conformes',
+    statIncompletos:'Incompletas', statPct:'% Conformidade',
+    tableTitle:'Revisões registradas', tableSub:'Filtre por responsável ou resultado, e exporte o relatório executivo.',
+    searchPh:'Buscar por norma, controle, período ou observações…',
+    btnReset:'Apagar tudo', btnExcel:'Baixar Excel', btnPdf:'Baixar PDF executivo',
+    thFecha:'Data da revisão', thResponsable:'Responsável', thEstandar:'Norma', thControl:'Controle revisado',
+    thFrecuencia:'Frequência', thPeriodo:'Período revisado', thChecklist:'Checklist', thResultado:'Resultado',
+    emptyState:'Ainda não há revisões registradas. Preencha o formulário acima para começar.',
+    tabTodos:'Todos', statusConforme:'Conforme', statusNoConforme:'Não conforme', statusIncompleto:'Incompleta',
+    btnEditar:'Editar', btnEliminar:'Excluir', sinObs:'Sem observações.',
+    alertResponsable:'Selecione ou digite o nome do responsável.',
+    alertFecha:'Selecione a data da revisão.',
+    alertEstandar:'Selecione a norma ou padrão.',
+    alertFrecuencia:'Selecione a frequência.',
+    alertControl:'Digite o controle ou atividade revisada.',
+    alertAnio:'Informe o ano do período.',
+    confirmIncompleto:(n)=>`Você deixou ${n} item(ns) do checklist sem resposta. O registro ficará marcado como "${I18N.pt.statusIncompleto}". Salvar mesmo assim?`,
+    confirmReset:'Isso apagará TODAS as revisões registradas neste navegador. Continuar?',
+    confirmDelete:'Excluir este registro de revisão? Esta ação não pode ser desfeita.',
+    alertNoDataExport:'Não há revisões registradas para exportar.',
+    pdfLoadError:'Não foi possível carregar o complemento de tabelas do PDF.',
+    pdfPrep:'Preparando PDF…', pdfGen:'Gerando PDF…', pdfError:'Não foi possível gerar o PDF: ',
+    pdfTitle:'Relatório de Revisões de Controle — ODATA', pdfGenerated:'Gerado',
+    pdfSummaryTitle:'RESUMO EXECUTIVO',
+    pdfSummaryLine:(t,c,nc,i)=>`Revisões registradas: ${t}    Conformes: ${c}    Não conformes: ${nc}    Incompletas: ${i}`,
+    pdfPctLabel:'% Conformidade: ',
+    pdfExceptionsTitle:(n)=>`REVISÕES NÃO CONFORMES (${n})`,
+    pdfNoExceptions:'Sem achados — todas as revisões registradas estão conformes.',
+    pdfDetailTitle:'DETALHE COMPLETO DAS REVISÕES',
+    pdfColFecha:'Data', pdfColResponsable:'Responsável', pdfColEstandar:'Norma', pdfColControl:'Controle revisado',
+    pdfColPeriodo:'Período', pdfColObs:'Observações', pdfColFrecuencia:'Frequência', pdfColChecklist:'Checklist', pdfColResultado:'Resultado',
+    excelColObs:'Observações'
+  }
+};
+
+let currentLang = localStorage.getItem('sgi_revisiones_lang') || 'es';
+let currentTheme = localStorage.getItem('sgi_revisiones_theme') || 'light';
+function t(key){ return I18N[currentLang][key]; }
+function estName(code){ const e = ESTANDARES.find(x=>x.code===code); return e ? e[currentLang] : code; }
+function freqName(code){ const f = FRECUENCIAS.find(x=>x.code===code); return f ? f[currentLang] : code; }
+
+const STORAGE_KEY = 'sgi_revisiones_control_odata_v1';
+let rows = [];
+let editingId = null;
+let currentRespFilter = 'Todos';
+let currentStatusFilter = 'Todos';
+let openDetailId = null;
+
+function uid(){ return 'r' + Date.now() + Math.random().toString(36).slice(2,7); }
+function escapeHtml(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function formatFechaEs(iso){
+  if(!iso) return '—';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function save(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({rows, savedAt: Date.now()})); }
+  catch(err){ console.error('No se pudo guardar', err); }
+}
+function migrateOldEntry(r){
+  // Compatibilidad con la versión anterior (solo PCI, campo "tipo" y "periodo" string)
+  if(r.estandar) return r; // ya está en formato nuevo
+  return {
+    id: r.id || uid(),
+    responsable: r.responsable,
+    fecha: r.fecha,
+    estandar: 'pci',
+    frecuencia: (r.frecuencia||'').toLowerCase().includes('trim') ? 'trimestral' : (r.frecuencia||'').toLowerCase().includes('sem') ? 'semestral' : (r.frecuencia||'').toLowerCase().includes('anu') ? 'anual' : 'otra',
+    controlLabel: r.tipo || '',
+    anio: r.anio, mesDesde: r.mesDesde, mesHasta: r.mesHasta,
+    checklist: Object.fromEntries(Object.entries(r.checklist||{}).map(([k,v])=>[k, v==='Sí'?'yes':(v==='No'?'no':(v?'na':null))])),
+    estado: r.estado === 'Conforme' ? 'Conforme' : (r.estado === 'No conforme' ? 'No conforme' : 'Incompleto'),
+    observaciones: r.observaciones || '',
+    createdAt: r.createdAt || Date.now()
+  };
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ rows = (JSON.parse(raw).rows || []).map(migrateOldEntry); return; }
+  }catch(err){ rows = []; return; }
+  // intentar migrar de la clave antigua de la versión PCI
+  try{
+    const oldRaw = localStorage.getItem('pci_revisiones_odata_v1');
+    if(oldRaw){ rows = (JSON.parse(oldRaw).rows || []).map(migrateOldEntry); save(); }
+  }catch(err){ rows = []; }
+}
+
+/* ================= Tema ================= */
+const SUN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+const MOON_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>';
+function applyTheme(){
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  document.getElementById('themeToggle').innerHTML = currentTheme === 'dark' ? SUN_SVG : MOON_SVG;
+  localStorage.setItem('sgi_revisiones_theme', currentTheme);
+}
+document.getElementById('themeToggle').addEventListener('click', ()=>{
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  applyTheme();
+});
+
+/* ================= Selects dinámicos ================= */
+function fillSelect(id, list, codeKey='code'){
+  const el = document.getElementById(id);
+  const prev = el.value;
+  el.innerHTML = list.map(item => `<option value="${item[codeKey]}">${escapeHtml(item[currentLang])}</option>`).join('');
+  if(prev && list.some(i=>i[codeKey]===prev)) el.value = prev;
+}
+function fillMonthSelects(){
+  const meses = MESES[currentLang];
+  ['fMesDesde','fMesHasta'].forEach(id=>{
+    const el = document.getElementById(id);
+    const prev = el.value;
+    el.innerHTML = meses.map((m,i)=>`<option value="${i+1}">${escapeHtml(m)}</option>`).join('');
+    if(prev) el.value = prev;
+  });
+}
+
+function buildChecklistUI(){
+  const box = document.getElementById('checklistBox');
+  const prevValues = {};
+  box.querySelectorAll('.cl-row').forEach(r=>{ if(r.dataset.value) prevValues[r.dataset.cid] = r.dataset.value; });
+  box.innerHTML = CHECKLIST_DEFS.map((c,i)=>`
+    <div class="cl-row" data-cid="${c.id}">
+      <div class="cl-num">${i+1}</div>
+      <div class="cl-text">${escapeHtml(c[currentLang])}<span class="req">${escapeHtml(c.req[currentLang])}</span></div>
+      <div class="cl-toggle">
+        <button type="button" class="cl-btn si" data-val="yes">${currentLang==='en'?'Yes':(currentLang==='pt'?'Sim':'Sí')}</button>
+        <button type="button" class="cl-btn no" data-val="no">${currentLang==='en'?'No':(currentLang==='pt'?'Não':'No')}</button>
+        <button type="button" class="cl-btn na" data-val="na">N/A</button>
+      </div>
+    </div>
+  `).join('');
+  box.querySelectorAll('.cl-row').forEach(r=>{
+    if(prevValues[r.dataset.cid]) r.dataset.value = prevValues[r.dataset.cid];
+  });
+  box.querySelectorAll('.cl-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const row = btn.closest('.cl-row');
+      row.querySelectorAll('.cl-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      row.dataset.value = btn.dataset.val;
+    });
+  });
+  refreshChecklistActiveState();
+}
+function refreshChecklistActiveState(){
+  document.querySelectorAll('.cl-row').forEach(r=>{
+    const v = r.dataset.value;
+    r.querySelectorAll('.cl-btn').forEach(b=>b.classList.toggle('active', v && b.dataset.val === v));
+  });
+}
+
+function getChecklistValues(){
+  const vals = {};
+  document.querySelectorAll('.cl-row').forEach(r=>{ vals[r.dataset.cid] = r.dataset.value || null; });
+  return vals;
+}
+function setChecklistValues(vals){
+  document.querySelectorAll('.cl-row').forEach(r=>{
+    r.dataset.value = (vals && vals[r.dataset.cid]) || '';
+  });
+  refreshChecklistActiveState();
+}
+
+function computeEstado(checklist){
+  const answered = CHECKLIST_DEFS.filter(c => checklist[c.id]);
+  if(answered.length < CHECKLIST_DEFS.length) return 'Incompleto';
+  const mandatoryFail = MANDATORY_OK.some(id => checklist[id] === 'no');
+  const deviationsFound = checklist.c5 === 'yes';
+  const remediated = checklist.c6 === 'yes';
+  if(mandatoryFail) return 'No conforme';
+  if(deviationsFound && !remediated) return 'No conforme';
+  return 'Conforme';
+}
+function estadoLabel(estado){
+  if(estado==='Conforme') return t('statusConforme');
+  if(estado==='No conforme') return t('statusNoConforme');
+  return t('statusIncompleto');
+}
+function checklistScore(checklist){
+  const total = CHECKLIST_DEFS.length;
+  const ok = CHECKLIST_DEFS.filter(c => checklist[c.id] && checklist[c.id] !== 'no').length;
+  return `${ok}/${total}`;
+}
+function periodLabel(anio, mDesde, mHasta){
+  if(!anio || !mDesde || !mHasta) return '—';
+  const meses = MESES[currentLang];
+  if(parseInt(mDesde)===parseInt(mHasta)) return `${meses[mDesde-1]} ${anio}`;
+  return `${meses[mDesde-1]} - ${meses[mHasta-1]} ${anio}`;
+}
+function updatePeriodPreview(){
+  const anio = document.getElementById('fAnio').value;
+  const mD = parseInt(document.getElementById('fMesDesde').value,10);
+  const mH = parseInt(document.getElementById('fMesHasta').value,10);
+  document.getElementById('periodPreview').textContent = t('periodPrefix') + periodLabel(anio, mD, mH);
+}
+
+function resetForm(){
+  editingId = null;
+  document.getElementById('formTitle').textContent = t('formTitleNew');
+  document.getElementById('btnGuardar').textContent = t('btnGuardar');
+  document.getElementById('btnCancelarEdicion').style.display = 'none';
+  document.getElementById('fResponsable').value = '';
+  document.getElementById('fResponsableOtro').value = '';
+  document.getElementById('fResponsableOtro').style.display = 'none';
+  document.getElementById('fFecha').value = todayISO();
+  document.getElementById('fEstandar').value = '';
+  document.getElementById('fFrecuencia').value = '';
+  document.getElementById('fControl').value = '';
+  document.getElementById('fAnio').value = new Date().getFullYear();
+  document.getElementById('fMesDesde').value = '1';
+  document.getElementById('fMesHasta').value = '3';
+  document.getElementById('fObs').value = '';
+  setChecklistValues(null);
+  updatePeriodPreview();
+}
+
+document.getElementById('fResponsable').addEventListener('change', (e)=>{
+  document.getElementById('fResponsableOtro').style.display = e.target.value === '__otro__' ? 'block' : 'none';
+});
+['fAnio','fMesDesde','fMesHasta'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', updatePeriodPreview);
+  document.getElementById(id).addEventListener('input', updatePeriodPreview);
+});
+
+document.getElementById('btnGuardar').addEventListener('click', ()=>{
+  let responsable = document.getElementById('fResponsable').value;
+  if(responsable === '__otro__'){ responsable = document.getElementById('fResponsableOtro').value.trim(); }
+  const fecha = document.getElementById('fFecha').value;
+  const estandar = document.getElementById('fEstandar').value;
+  const frecuencia = document.getElementById('fFrecuencia').value;
+  const controlLabel = document.getElementById('fControl').value.trim();
+  const anio = document.getElementById('fAnio').value;
+  const mDesde = parseInt(document.getElementById('fMesDesde').value,10);
+  const mHasta = parseInt(document.getElementById('fMesHasta').value,10);
+
+  if(!responsable){ alert(t('alertResponsable')); return; }
+  if(!fecha){ alert(t('alertFecha')); return; }
+  if(!estandar){ alert(t('alertEstandar')); return; }
+  if(!frecuencia){ alert(t('alertFrecuencia')); return; }
+  if(!controlLabel){ alert(t('alertControl')); return; }
+  if(!anio){ alert(t('alertAnio')); return; }
+
+  const checklist = getChecklistValues();
+  const missing = CHECKLIST_DEFS.filter(c => !checklist[c.id]);
+  if(missing.length){
+    if(!confirm(t('confirmIncompleto')(missing.length))) return;
+  }
+
+  const entry = {
+    id: editingId || uid(),
+    responsable, fecha, estandar, frecuencia, controlLabel,
+    anio: parseInt(anio,10), mesDesde: mDesde, mesHasta: mHasta,
+    checklist,
+    estado: computeEstado(checklist),
+    observaciones: document.getElementById('fObs').value.trim(),
+    createdAt: editingId ? (rows.find(r=>r.id===editingId)||{}).createdAt || Date.now() : Date.now()
+  };
+
+  if(editingId){
+    const idx = rows.findIndex(r=>r.id===editingId);
+    if(idx>-1) rows[idx] = entry;
+  } else {
+    rows.unshift(entry);
+  }
+  save();
+  resetForm();
+  render();
+});
+
+document.getElementById('btnCancelarEdicion').addEventListener('click', resetForm);
+
+function editRow(id){
+  const r = rows.find(x=>x.id===id);
+  if(!r) return;
+  editingId = id;
+  document.getElementById('formTitle').textContent = t('formTitleEdit');
+  document.getElementById('btnGuardar').textContent = t('btnGuardarCambios');
+  document.getElementById('btnCancelarEdicion').style.display = 'inline-block';
+
+  const isKnown = RESP_LIST.includes(r.responsable);
+  document.getElementById('fResponsable').value = isKnown ? r.responsable : '__otro__';
+  document.getElementById('fResponsableOtro').style.display = isKnown ? 'none' : 'block';
+  document.getElementById('fResponsableOtro').value = isKnown ? '' : r.responsable;
+  document.getElementById('fFecha').value = r.fecha;
+  document.getElementById('fEstandar').value = r.estandar;
+  document.getElementById('fFrecuencia').value = r.frecuencia;
+  document.getElementById('fControl').value = r.controlLabel;
+  document.getElementById('fAnio').value = r.anio;
+  document.getElementById('fMesDesde').value = r.mesDesde;
+  document.getElementById('fMesHasta').value = r.mesHasta;
+  document.getElementById('fObs').value = r.observaciones || '';
+  setChecklistValues(r.checklist);
+  updatePeriodPreview();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function deleteRow(id){
+  if(!confirm(t('confirmDelete'))) return;
+  rows = rows.filter(r=>r.id!==id);
+  save();
+  render();
+}
+window.editRow = editRow;
+window.deleteRow = deleteRow;
+
+function filteredRows(){
+  const search = document.getElementById('searchBox').value.trim().toLowerCase();
+  return rows.filter(r=>{
+    if(currentRespFilter !== 'Todos' && r.responsable !== currentRespFilter) return false;
+    if(currentStatusFilter !== 'Todos' && r.estado !== currentStatusFilter) return false;
+    if(search){
+      const hay = `${estName(r.estandar)} ${r.controlLabel} ${periodLabel(r.anio,r.mesDesde,r.mesHasta)} ${r.observaciones}`.toLowerCase();
+      if(!hay.includes(search)) return false;
+    }
+    return true;
+  });
+}
+
+function renderTabs(){
+  const respNames = Array.from(new Set(rows.map(r=>r.responsable))).sort();
+  const respTabs = document.getElementById('respTabs');
+  respTabs.innerHTML = ['Todos', ...respNames].map(name=>{
+    const cnt = name==='Todos' ? rows.length : rows.filter(r=>r.responsable===name).length;
+    const label = name==='Todos' ? t('tabTodos') : name;
+    return `<div class="tab ${currentRespFilter===name?'active':''}" data-resp="${escapeHtml(name)}">${escapeHtml(label)} <span style="opacity:.7">${cnt}</span></div>`;
+  }).join('');
+  respTabs.querySelectorAll('.tab').forEach(el=>el.addEventListener('click', ()=>{
+    currentRespFilter = el.dataset.resp; render();
+  }));
+
+  const statusTabs = document.getElementById('statusTabs');
+  const statuses = [
+    {key:'Todos', label:t('tabTodos'), cls:''},
+    {key:'Conforme', label:t('statusConforme'), cls:'st-ok'},
+    {key:'No conforme', label:t('statusNoConforme'), cls:'st-bad'},
+    {key:'Incompleto', label:t('statusIncompleto'), cls:''}
+  ];
+  statusTabs.innerHTML = statuses.map(s=>{
+    const cnt = s.key==='Todos' ? rows.length : rows.filter(r=>r.estado===s.key).length;
+    return `<div class="tab ${currentStatusFilter===s.key?'active '+s.cls:''}" data-status="${s.key}">${escapeHtml(s.label)} <span style="opacity:.7">${cnt}</span></div>`;
+  }).join('');
+  statusTabs.querySelectorAll('.tab').forEach(el=>el.addEventListener('click', ()=>{
+    currentStatusFilter = el.dataset.status; render();
+  }));
+}
+
+function renderSummary(){
+  const total = rows.length;
+  const conformes = rows.filter(r=>r.estado==='Conforme').length;
+  const noConformes = rows.filter(r=>r.estado==='No conforme').length;
+  const incompletos = rows.filter(r=>r.estado==='Incompleto').length;
+  const pct = total ? Math.round((conformes/total)*100) : 0;
+  document.getElementById('summaryRow').innerHTML = `
+    <div class="stat"><div class="n">${total}</div><div class="l">${escapeHtml(t('statTotal'))}</div></div>
+    <div class="stat ok"><div class="n">${conformes}</div><div class="l">${escapeHtml(t('statConformes'))}</div></div>
+    <div class="stat bad"><div class="n">${noConformes}</div><div class="l">${escapeHtml(t('statNoConformes'))}</div></div>
+    <div class="stat"><div class="n">${incompletos}</div><div class="l">${escapeHtml(t('statIncompletos'))}</div></div>
+    <div class="stat ok"><div class="n">${pct}%</div><div class="l">${escapeHtml(t('statPct'))}</div></div>
+  `;
+}
+
+function renderTable(){
+  const list = filteredRows();
+  const tbody = document.getElementById('tbody');
+  document.getElementById('emptyState').style.display = rows.length ? 'none' : 'block';
+  document.getElementById('mainTable').style.display = rows.length ? 'table' : 'none';
+
+  tbody.innerHTML = list.map(r=>{
+    const badgeClass = r.estado==='Conforme' ? 'ok' : (r.estado==='No conforme' ? 'bad' : 'freq');
+    const rowHtml = `
+      <tr data-id="${r.id}" class="main-row">
+        <td>${formatFechaEs(r.fecha)}</td>
+        <td>${escapeHtml(r.responsable)}</td>
+        <td>${escapeHtml(estName(r.estandar))}</td>
+        <td>${escapeHtml(r.controlLabel)}</td>
+        <td><span class="badge freq">${escapeHtml(freqName(r.frecuencia))}</span></td>
+        <td>${escapeHtml(periodLabel(r.anio,r.mesDesde,r.mesHasta))}</td>
+        <td>${checklistScore(r.checklist)}</td>
+        <td><span class="badge ${badgeClass}">${escapeHtml(estadoLabel(r.estado))}</span></td>
+        <td style="white-space:nowrap;">
+          <button class="btn-ghost btn-sm" onclick="editRow('${r.id}')">${escapeHtml(t('btnEditar'))}</button>
+          <button class="btn-danger-ghost btn-sm" onclick="deleteRow('${r.id}')">${escapeHtml(t('btnEliminar'))}</button>
+        </td>
+      </tr>`;
+    let detailHtml = '';
+    if(openDetailId === r.id){
+      const items = CHECKLIST_DEFS.map(c=>{
+        const v = r.checklist[c.id];
+        const vLabel = v==='yes' ? (currentLang==='en'?'Yes':(currentLang==='pt'?'Sim':'Sí')) : (v==='no' ? (currentLang==='pt'?'Não':'No') : (v==='na' ? 'N/A' : '—'));
+        return `<div>${escapeHtml(c[currentLang])} — <b>${escapeHtml(vLabel)}</b></div>`;
+      }).join('');
+      detailHtml = `
+        <tr class="row-detail"><td colspan="9">
+          <div class="detail-grid">${items}</div>
+          <div class="detail-obs">${r.observaciones ? escapeHtml(r.observaciones) : escapeHtml(t('sinObs'))}</div>
+        </td></tr>`;
+    }
+    return rowHtml + detailHtml;
+  }).join('');
+
+  tbody.querySelectorAll('.main-row').forEach(tr=>{
+    tr.addEventListener('click', (e)=>{
+      if(e.target.tagName === 'BUTTON') return;
+      const id = tr.dataset.id;
+      openDetailId = (openDetailId === id) ? null : id;
+      renderTable();
+    });
+  });
+}
+
+function render(){
+  renderTabs();
+  renderSummary();
+  renderTable();
+}
+
+document.getElementById('searchBox').addEventListener('input', renderTable);
+document.getElementById('btnReset').addEventListener('click', ()=>{
+  if(!rows.length) return;
+  if(!confirm(t('confirmReset'))) return;
+  rows = [];
+  save();
+  render();
+});
+
+/* ================= Export Excel ================= */
+document.getElementById('btnExportExcel').addEventListener('click', ()=>{
+  if(!rows.length){ alert(t('alertNoDataExport')); return; }
+  const data = rows.map(r=>{
+    const base = {};
+    base[t('thFecha')] = formatFechaEs(r.fecha);
+    base[t('thResponsable')] = r.responsable;
+    base[t('thEstandar')] = estName(r.estandar);
+    base[t('thControl')] = r.controlLabel;
+    base[t('thFrecuencia')] = freqName(r.frecuencia);
+    base[t('thPeriodo')] = periodLabel(r.anio,r.mesDesde,r.mesHasta);
+    base[t('thResultado')] = estadoLabel(r.estado);
+    CHECKLIST_DEFS.forEach(c=>{
+      const v = r.checklist[c.id];
+      base[c[currentLang]] = v==='yes' ? (currentLang==='en'?'Yes':(currentLang==='pt'?'Sim':'Sí')) : (v==='no' ? (currentLang==='pt'?'Não':'No') : (v==='na' ? 'N/A' : ''));
+    });
+    base[t('excelColObs')] = r.observaciones || '';
+    return base;
+  });
+  const ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = Object.keys(data[0]||{}).map(k => ({wch: Math.min(45, Math.max(14, k.length+2))}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Revisiones');
+  XLSX.writeFile(wb, `revisiones_control_${new Date().toISOString().slice(0,10)}.xlsx`);
+});
+
+/* ================= Export PDF ================= */
+const LOGO_ODATA_B64 = 'data:image/png;base64,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';
+const LOGO_ODATA_RATIO = 104/907;
+
+async function ensureAutoTable(){
+  if(window.jspdf && window.jspdf.jsPDF && typeof window.jspdf.jsPDF.API.autoTable === 'function') return;
+  await new Promise((resolve, reject)=>{
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+    s.onload = resolve;
+    s.onerror = ()=>reject(new Error(t('pdfLoadError')));
+    document.head.appendChild(s);
+  });
+}
+
+document.getElementById('btnExportPdf').addEventListener('click', async ()=>{
+  if(!rows.length){ alert(t('alertNoDataExport')); return; }
+  const btn = document.getElementById('btnExportPdf');
+  const originalText = btn.textContent;
+  btn.textContent = t('pdfPrep');
+  btn.disabled = true;
+
+  try{ await ensureAutoTable(); }
+  catch(err){ alert(err.message); btn.textContent = originalText; btn.disabled = false; return; }
+  btn.textContent = t('pdfGen');
+
+  try{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
+
+    const total = rows.length;
+    const conformes = rows.filter(r=>r.estado==='Conforme').length;
+    const noConformes = rows.filter(r=>r.estado==='No conforme').length;
+    const incompletos = rows.filter(r=>r.estado==='Incompleto').length;
+    const pct = total ? Math.round((conformes/total)*100) : 0;
+
+    const logoW = 34, logoH = logoW * LOGO_ODATA_RATIO;
+    try{ doc.addImage(LOGO_ODATA_B64, 'PNG', 14, 8, logoW, logoH); }catch(err){}
+
+    doc.setFontSize(15);
+    doc.setTextColor(82,37,130);
+    doc.text(t('pdfTitle'), 54, 14);
+
+    doc.setFontSize(9);
+    doc.setTextColor(107,100,121);
+    doc.text(`${t('pdfGenerated')} ${new Date().toLocaleString(currentLang==='en'?'en-US':(currentLang==='pt'?'pt-BR':'es-CL'))}`, 54, 20);
+
+    const boxY = 28, boxH = 15;
+    doc.setDrawColor(228,225,236);
+    doc.setFillColor(246,245,249);
+    doc.roundedRect(14, boxY, 269, boxH, 2, 2, 'FD');
+
+    doc.setFontSize(8.5);
+    doc.setTextColor(82,37,130);
+    doc.setFont(undefined, 'bold');
+    doc.text(t('pdfSummaryTitle'), 18, boxY + 5.5);
+
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(33,26,43);
+    doc.text(t('pdfSummaryLine')(total, conformes, noConformes, incompletos), 18, boxY + 10.5);
+
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(pct>=90 ? 30 : (pct>=70 ? 168 : 214), pct>=90 ? 143 : (pct>=70 ? 108 : 69), pct>=90 ? 95 : (pct>=70 ? 61 : 69));
+    doc.text(`${t('pdfPctLabel')}${pct}%`, 240, boxY + 10.5);
+    doc.setFont(undefined, 'normal');
+
+    let yCursor = boxY + boxH + 7;
+    const exceptions = rows.filter(r=>r.estado==='No conforme');
+
+    if(exceptions.length){
+      doc.setFontSize(10);
+      doc.setTextColor(214,69,69);
+      doc.setFont(undefined, 'bold');
+      doc.text(t('pdfExceptionsTitle')(exceptions.length), 14, yCursor);
+      doc.setFont(undefined, 'normal');
+      yCursor += 4;
+
+      doc.autoTable({
+        startY: yCursor,
+        head: [[t('pdfColFecha'), t('pdfColResponsable'), t('pdfColEstandar'), t('pdfColControl'), t('pdfColPeriodo'), t('pdfColObs')]],
+        body: exceptions.map(r=>[formatFechaEs(r.fecha), r.responsable, estName(r.estandar), r.controlLabel, periodLabel(r.anio,r.mesDesde,r.mesHasta), r.observaciones || '—']),
+        styles: {fontSize:7.5, cellPadding:1.5, minCellHeight:9},
+        headStyles: {fillColor:[214,69,69], textColor:255, fontSize:8},
+        bodyStyles: {fillColor:[253,246,246]},
+        alternateRowStyles: {fillColor:[251,236,236]}
+      });
+      yCursor = doc.lastAutoTable.finalY + 8;
+    } else {
+      doc.setFontSize(9);
+      doc.setTextColor(30,143,95);
+      doc.setFont(undefined, 'bold');
+      doc.text(t('pdfNoExceptions'), 14, yCursor);
+      doc.setFont(undefined, 'normal');
+      yCursor += 8;
+    }
+
+    if(yCursor > 195){ doc.addPage(); yCursor = 15; }
+    doc.setFontSize(10);
+    doc.setTextColor(82,37,130);
+    doc.setFont(undefined, 'bold');
+    doc.text(t('pdfDetailTitle'), 14, yCursor);
+    doc.setFont(undefined, 'normal');
+    yCursor += 4;
+
+    doc.autoTable({
+      startY: yCursor,
+      head: [[t('pdfColFecha'), t('pdfColResponsable'), t('pdfColEstandar'), t('pdfColControl'), t('pdfColFrecuencia'), t('pdfColPeriodo'), t('pdfColChecklist'), t('pdfColResultado')]],
+      body: rows.map(r=>[formatFechaEs(r.fecha), r.responsable, estName(r.estandar), r.controlLabel, freqName(r.frecuencia), periodLabel(r.anio,r.mesDesde,r.mesHasta), checklistScore(r.checklist), estadoLabel(r.estado)]),
+      styles: {fontSize:7.5, cellPadding:1.5, minCellHeight:9},
+      headStyles: {fillColor:[82,37,130], textColor:255, fontSize:8},
+      alternateRowStyles: {fillColor:[250,249,252]},
+      didParseCell: (data)=>{
+        if(data.section!=='body') return;
+        const row = rows[data.row.index];
+        if(row && row.estado==='No conforme'){ data.cell.styles.fillColor = [251,234,234]; }
+        if(data.column.index===7){
+          const map = {}; map[t('statusConforme')]=[30,143,95]; map[t('statusNoConforme')]=[214,69,69]; map[t('statusIncompleto')]=[150,99,23];
+          const color = map[data.cell.raw];
+          if(color){ data.cell.styles.textColor = color; data.cell.styles.fontStyle = 'bold'; }
+        }
+      }
+    });
+
+    doc.save(`revisiones_control_${new Date().toISOString().slice(0,10)}.pdf`);
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }catch(err){
+    console.error('Error generando PDF:', err);
+    alert(t('pdfError') + err.message);
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+});
+
+/* ================= Aplicar idioma ================= */
+function applyStaticI18n(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key = el.getAttribute('data-i18n');
+    if(I18N[currentLang][key] !== undefined) el.textContent = I18N[currentLang][key];
+  });
+  document.getElementById('fResponsableOtro').placeholder = t('phResponsableOtro');
+  document.getElementById('fControl').placeholder = t('phControl');
+  document.getElementById('hintControl').textContent = t('hintControl');
+  document.getElementById('fObs').placeholder = t('phObs');
+  document.getElementById('searchBox').placeholder = t('searchPh');
+  document.title = t('headerTitle') + ' — ODATA';
+}
+
+function applyLanguage(){
+  fillSelect('fEstandar', ESTANDARES);
+  fillSelect('fFrecuencia', FRECUENCIAS);
+  fillMonthSelects();
+  buildChecklistUI();
+  applyStaticI18n();
+  if(!editingId){
+    document.getElementById('formTitle').textContent = t('formTitleNew');
+    document.getElementById('btnGuardar').textContent = t('btnGuardar');
+  } else {
+    document.getElementById('formTitle').textContent = t('formTitleEdit');
+    document.getElementById('btnGuardar').textContent = t('btnGuardarCambios');
+  }
+  updatePeriodPreview();
+  render();
+}
+
+document.getElementById('langSelect').addEventListener('change', (e)=>{
+  currentLang = e.target.value;
+  localStorage.setItem('sgi_revisiones_lang', currentLang);
+  applyLanguage();
+});
+
+/* ================= Init ================= */
+document.getElementById('langSelect').value = currentLang;
+applyTheme();
+load();
+fillSelect('fEstandar', ESTANDARES);
+fillSelect('fFrecuencia', FRECUENCIAS);
+fillMonthSelects();
+buildChecklistUI();
+applyStaticI18n();
+resetForm();
+render();
+</script>
+</body>
+</html>
