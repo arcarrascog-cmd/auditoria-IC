@@ -72,7 +72,6 @@
   .cl-row:nth-child(even){background:var(--panel-alt);}
   .cl-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--gray-bg);color:var(--purple-dark);font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:1px;}
   .cl-text{flex:1;font-size:13px;line-height:1.4;}
-  .cl-text .req{display:block;font-size:10.5px;color:var(--ink-soft);margin-top:2px;text-transform:uppercase;letter-spacing:.3px;}
   .cl-toggle{display:flex;gap:4px;flex-shrink:0;}
   .cl-btn{min-width:38px;height:30px;padding:0 8px;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--ink-soft);font-size:12px;font-weight:700;cursor:pointer;}
   .cl-btn:hover{border-color:var(--purple);}
@@ -210,6 +209,21 @@
     <p class="sub" data-i18n="checklistSub">Responde Sí / No / N-A para cada punto.</p>
     <div class="checklist" id="checklistBox"></div>
 
+    <div class="field" style="margin-top:16px;">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:600;text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink);cursor:pointer;">
+        <input type="checkbox" id="fToggleAP" style="width:auto;">
+        <span data-i18n="lblToggleAP">Esta revisión incluye un simulacro de incidentes (AP)</span>
+      </label>
+      <div class="checklist" id="checklistAPBox" style="margin-top:8px;"></div>
+    </div>
+    <div class="field" style="margin-top:10px;">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:600;text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink);cursor:pointer;">
+        <input type="checkbox" id="fToggleAcc" style="width:auto;">
+        <span data-i18n="lblToggleAcc">Esta revisión incluye la revisión anual de accesos físicos</span>
+      </label>
+      <div class="checklist" id="checklistAccBox" style="margin-top:8px;"></div>
+    </div>
+
     <div class="field" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
         <label data-i18n="lblObs" style="margin-bottom:0;">Observaciones</label>
@@ -296,42 +310,40 @@ const FRECUENCIAS = [
 
 const CHECKLIST_DEFS = [
   {id:'c1',
-    es:'La revisión se realizó dentro del plazo establecido para su frecuencia (no está vencida).',
-    en:'The review was completed within the deadline set for its frequency (not overdue).',
-    pt:'A revisão foi realizada dentro do prazo estabelecido para sua frequência (não está vencida).',
-    req:{es:'Oportunidad', en:'Timeliness', pt:'Tempestividade'}},
-  {id:'c2',
-    es:'La revisión fue efectuada por personal distinto al responsable de ejecutar el control revisado.',
-    en:'The review was performed by personnel other than those responsible for executing the reviewed control.',
-    pt:'A revisão foi realizada por pessoal diferente do responsável por executar o controle revisado.',
-    req:{es:'Independencia', en:'Independence', pt:'Independência'}},
-  {id:'c3',
-    es:'Se revisó evidencia suficiente y representativa del período correspondiente.',
-    en:'Sufficient and representative evidence for the corresponding period was reviewed.',
-    pt:'Foi revisada evidência suficiente e representativa do período correspondente.',
-    req:{es:'Cobertura de evidencia', en:'Evidence coverage', pt:'Cobertura de evidência'}},
-  {id:'c4',
-    es:'El control se ejecutó conforme al procedimiento o estándar aplicable.',
-    en:'The control was executed in accordance with the applicable procedure or standard.',
-    pt:'O controle foi executado conforme o procedimento ou padrão aplicável.',
-    req:{es:'Cumplimiento de procedimiento', en:'Procedure compliance', pt:'Conformidade com procedimento'}},
+    es:'La rutina se realizó dentro del plazo establecido para su frecuencia (no está vencida).',
+    en:'The routine was completed within the deadline set for its frequency (not overdue).',
+    pt:'A rotina foi realizada dentro do prazo estabelecido para sua frequência (não está vencida).'},
   {id:'c5',
     es:'Se identificaron desviaciones o incumplimientos durante la revisión.',
     en:'Deviations or non-compliances were identified during the review.',
-    pt:'Foram identificados desvios ou não conformidades durante a revisão.',
-    req:{es:'Hallazgos', en:'Findings', pt:'Achados'}},
+    pt:'Foram identificados desvios ou não conformidades durante a revisão.'},
   {id:'c6',
     es:'Las desviaciones identificadas cuentan con acción de remediación documentada.',
     en:'The identified deviations have a documented remediation action.',
-    pt:'Os desvios identificados possuem ação de remediação documentada.',
-    req:{es:'Remediación', en:'Remediation', pt:'Remediação'}},
+    pt:'Os desvios identificados possuem ação de remediação documentada.'},
   {id:'c7',
     es:'Se conserva evidencia o soporte de la revisión (capturas, reportes, actas, exportes).',
     en:'Evidence or support for the review is kept (screenshots, reports, minutes, exports).',
-    pt:'É mantida evidência ou suporte da revisão (capturas, relatórios, atas, exportações).',
-    req:{es:'Documentación', en:'Documentation', pt:'Documentação'}}
+    pt:'É mantida evidência ou suporte da revisão (capturas, relatórios, atas, exportações).'}
 ];
-const MANDATORY_OK = ['c1','c2','c3','c4','c7'];
+const EXTRA_AP_DEFS = [
+  {id:'cAP1',
+    es:'Se verificó que el simulacro exista, que el incidente se haya simulado, y que cuente con capturas de pantalla (prints) y una conclusión documentada.',
+    en:'It was verified that the drill exists, that the incident was simulated, and that it has screenshots (prints) and a documented conclusion.',
+    pt:'Foi verificado que o simulado existe, que o incidente foi simulado, e que possui capturas de tela e uma conclusão documentada.'}
+];
+const EXTRA_ACC_DEFS = [
+  {id:'cACC1',
+    es:'Se realizó la revisión anual de accesos físicos correspondiente al período.',
+    en:'The annual physical access review corresponding to the period was carried out.',
+    pt:'Foi realizada a revisão anual de acessos físicos correspondente ao período.'}
+];
+const ALL_ITEM_DEFS = CHECKLIST_DEFS.concat(EXTRA_AP_DEFS, EXTRA_ACC_DEFS);
+const MANDATORY_OK = ['c1','c7'];
+const EXTRA_MANDATORY = ['cAP1','cACC1'];
+function getApplicableDefs(checklistObj){
+  return ALL_ITEM_DEFS.filter(d => Object.prototype.hasOwnProperty.call(checklistObj||{}, d.id));
+}
 const RESP_LIST = ['Alejandro Carrasco','Paula Polanco','Heide Coelho'];
 const DC_LIST = ['QR01','QR02','QR03','QR04','BG01','SP01','SP02','SP03','SP04','RJ01','ST01','ST02'];
 
@@ -356,6 +368,8 @@ const I18N = {
     lblDesde:'Período revisado — desde', lblHasta:'Período revisado — hasta',
     periodPrefix:'Período: ',
     checklistTitle:'Checklist de validación', checklistSub:'Responde Sí / No / N-A para cada punto.',
+    lblToggleAP:'Esta revisión incluye un simulacro de incidentes (AP)',
+    lblToggleAcc:'Esta revisión incluye la revisión anual de accesos físicos',
     lblObs:'Observaciones', phObs:'Detalle de hallazgos, remediaciones aplicadas, contexto adicional…',
     btnGenResumen:'Generar resumen automático',
     hintGenResumen:'El resumen se redacta a partir de tus respuestas del checklist. Puedes editarlo libremente antes de guardar.',
@@ -363,6 +377,7 @@ const I18N = {
     alertResumenSinRespuestas:'Responde al menos un punto del checklist para poder generar el resumen.',
     sumIntro:(control,estandar,frecuencia,responsable,fecha,dc,periodo)=>`La revisión de ${control} (${estandar}, frecuencia ${frecuencia}), realizada por ${responsable} el ${fecha}${dc?` en el Data Center ${dc}`:''}, cubrió el período ${periodo}.`,
     sumCumplidos:(lista)=>`Se cumplieron correctamente los siguientes puntos: ${lista}.`,
+    sumConteo:(ok,total,na)=>`Se cumplieron correctamente ${ok} de ${total} puntos evaluados${na?` (${na} no aplicaron a esta revisión)`:''}.`,
     sumIncumplidos:(lista)=>`No se cumplieron los siguientes puntos: ${lista}.`,
     sumNA:(lista)=>`No aplicaron los puntos: ${lista}.`,
     sumDesviacionesConRemediacion:'Se identificaron desviaciones durante la revisión, las cuales ya cuentan con una acción de remediación documentada.',
@@ -402,6 +417,8 @@ const I18N = {
     pdfPrep:'Preparando PDF…', pdfGen:'Generando PDF…', pdfError:'No se pudo generar el PDF: ',
     pdfTitle:'Reporte de Revisiones de Control — ODATA', pdfGenerated:'Generado',
     pdfSummaryTitle:'RESUMEN EJECUTIVO',
+    pdfByDCTitle:'RESUMEN POR DATA CENTER',
+    pdfColTotal:'Total',
     pdfSummaryLine:(t,c,nc,i)=>`Revisiones registradas: ${t}    Conformes: ${c}    No conformes: ${nc}    Incompletos: ${i}`,
     pdfPctLabel:'% Cumplimiento: ',
     pdfExceptionsTitle:(n)=>`REVISIONES NO CONFORMES (${n})`,
@@ -431,6 +448,8 @@ const I18N = {
     lblDesde:'Period reviewed — from', lblHasta:'Period reviewed — to',
     periodPrefix:'Period: ',
     checklistTitle:'Validation checklist', checklistSub:'Answer Yes / No / N-A for each item.',
+    lblToggleAP:'This review includes an incident drill (AP)',
+    lblToggleAcc:'This review includes the annual physical access review',
     lblObs:'Observations', phObs:'Findings detail, remediations applied, additional context…',
     btnGenResumen:'Generate automatic summary',
     hintGenResumen:'The summary is drafted from your checklist answers. You can freely edit it before saving.',
@@ -438,6 +457,7 @@ const I18N = {
     alertResumenSinRespuestas:'Answer at least one checklist item to generate the summary.',
     sumIntro:(control,estandar,frecuencia,responsable,fecha,dc,periodo)=>`The review of ${control} (${estandar}, ${frecuencia} frequency), carried out by ${responsable} on ${fecha}${dc?` at Data Center ${dc}`:''}, covered the period ${periodo}.`,
     sumCumplidos:(lista)=>`The following items were correctly met: ${lista}.`,
+    sumConteo:(ok,total,na)=>`${ok} of ${total} evaluated items were correctly met${na?` (${na} did not apply to this review)`:''}.`,
     sumIncumplidos:(lista)=>`The following items were not met: ${lista}.`,
     sumNA:(lista)=>`The following items did not apply: ${lista}.`,
     sumDesviacionesConRemediacion:'Deviations were identified during the review, and they already have a documented remediation action.',
@@ -477,6 +497,8 @@ const I18N = {
     pdfPrep:'Preparing PDF…', pdfGen:'Generating PDF…', pdfError:'Could not generate the PDF: ',
     pdfTitle:'Control Review Report — ODATA', pdfGenerated:'Generated',
     pdfSummaryTitle:'EXECUTIVE SUMMARY',
+    pdfByDCTitle:'SUMMARY BY DATA CENTER',
+    pdfColTotal:'Total',
     pdfSummaryLine:(t,c,nc,i)=>`Reviews recorded: ${t}    Compliant: ${c}    Non-compliant: ${nc}    Incomplete: ${i}`,
     pdfPctLabel:'% Compliance: ',
     pdfExceptionsTitle:(n)=>`NON-COMPLIANT REVIEWS (${n})`,
@@ -506,6 +528,8 @@ const I18N = {
     lblDesde:'Período revisado — de', lblHasta:'Período revisado — até',
     periodPrefix:'Período: ',
     checklistTitle:'Checklist de validação', checklistSub:'Responda Sim / Não / N/A para cada item.',
+    lblToggleAP:'Esta revisão inclui um simulado de incidentes (AP)',
+    lblToggleAcc:'Esta revisão inclui a revisão anual de acessos físicos',
     lblObs:'Observações', phObs:'Detalhe de achados, remediações aplicadas, contexto adicional…',
     btnGenResumen:'Gerar resumo automático',
     hintGenResumen:'O resumo é redigido a partir das suas respostas do checklist. Você pode editá-lo livremente antes de salvar.',
@@ -513,6 +537,7 @@ const I18N = {
     alertResumenSinRespuestas:'Responda pelo menos um item do checklist para gerar o resumo.',
     sumIntro:(control,estandar,frecuencia,responsable,fecha,dc,periodo)=>`A revisão de ${control} (${estandar}, frequência ${frecuencia}), realizada por ${responsable} em ${fecha}${dc?` no Data Center ${dc}`:''}, abrangeu o período ${periodo}.`,
     sumCumplidos:(lista)=>`Os seguintes pontos foram cumpridos corretamente: ${lista}.`,
+    sumConteo:(ok,total,na)=>`Foram cumpridos corretamente ${ok} de ${total} pontos avaliados${na?` (${na} não se aplicaram a esta revisão)`:''}.`,
     sumIncumplidos:(lista)=>`Os seguintes pontos não foram cumpridos: ${lista}.`,
     sumNA:(lista)=>`Os seguintes pontos não se aplicaram: ${lista}.`,
     sumDesviacionesConRemediacion:'Foram identificados desvios durante a revisão, os quais já possuem uma ação de remediação documentada.',
@@ -552,6 +577,8 @@ const I18N = {
     pdfPrep:'Preparando PDF…', pdfGen:'Gerando PDF…', pdfError:'Não foi possível gerar o PDF: ',
     pdfTitle:'Relatório de Revisões de Controle — ODATA', pdfGenerated:'Gerado',
     pdfSummaryTitle:'RESUMO EXECUTIVO',
+    pdfByDCTitle:'RESUMO POR DATA CENTER',
+    pdfColTotal:'Total',
     pdfSummaryLine:(t,c,nc,i)=>`Revisões registradas: ${t}    Conformes: ${c}    Não conformes: ${nc}    Incompletas: ${i}`,
     pdfPctLabel:'% Conformidade: ',
     pdfExceptionsTitle:(n)=>`REVISÕES NÃO CONFORMES (${n})`,
@@ -658,14 +685,13 @@ function fillMonthSelects(){
   });
 }
 
-function buildChecklistUI(){
-  const box = document.getElementById('checklistBox');
+function buildRowsInto(box, defs){
   const prevValues = {};
   box.querySelectorAll('.cl-row').forEach(r=>{ if(r.dataset.value) prevValues[r.dataset.cid] = r.dataset.value; });
-  box.innerHTML = CHECKLIST_DEFS.map((c,i)=>`
+  box.innerHTML = defs.map((c,i)=>`
     <div class="cl-row" data-cid="${c.id}">
       <div class="cl-num">${i+1}</div>
-      <div class="cl-text">${escapeHtml(c[currentLang])}<span class="req">${escapeHtml(c.req[currentLang])}</span></div>
+      <div class="cl-text">${escapeHtml(c[currentLang])}</div>
       <div class="cl-toggle">
         <button type="button" class="cl-btn si" data-val="yes">${currentLang==='en'?'Yes':(currentLang==='pt'?'Sim':'Sí')}</button>
         <button type="button" class="cl-btn no" data-val="no">${currentLang==='en'?'No':(currentLang==='pt'?'Não':'No')}</button>
@@ -686,6 +712,21 @@ function buildChecklistUI(){
   });
   refreshChecklistActiveState();
 }
+function buildChecklistUI(){
+  buildRowsInto(document.getElementById('checklistBox'), CHECKLIST_DEFS);
+}
+function refreshAPBox(){
+  const box = document.getElementById('checklistAPBox');
+  if(document.getElementById('fToggleAP').checked){ buildRowsInto(box, EXTRA_AP_DEFS); }
+  else { box.innerHTML = ''; }
+}
+function refreshAccBox(){
+  const box = document.getElementById('checklistAccBox');
+  if(document.getElementById('fToggleAcc').checked){ buildRowsInto(box, EXTRA_ACC_DEFS); }
+  else { box.innerHTML = ''; }
+}
+document.getElementById('fToggleAP').addEventListener('change', refreshAPBox);
+document.getElementById('fToggleAcc').addEventListener('change', refreshAccBox);
 function refreshChecklistActiveState(){
   document.querySelectorAll('.cl-row').forEach(r=>{
     const v = r.dataset.value;
@@ -706,9 +747,11 @@ function setChecklistValues(vals){
 }
 
 function computeEstado(checklist){
-  const answered = CHECKLIST_DEFS.filter(c => checklist[c.id]);
-  if(answered.length < CHECKLIST_DEFS.length) return 'Incompleto';
-  const mandatoryFail = MANDATORY_OK.some(id => checklist[id] === 'no');
+  const defs = getApplicableDefs(checklist);
+  const answered = defs.filter(c => checklist[c.id]);
+  if(answered.length < defs.length) return 'Incompleto';
+  const mandatoryIds = MANDATORY_OK.concat(EXTRA_MANDATORY.filter(id => Object.prototype.hasOwnProperty.call(checklist, id)));
+  const mandatoryFail = mandatoryIds.some(id => checklist[id] === 'no');
   const deviationsFound = checklist.c5 === 'yes';
   const remediated = checklist.c6 === 'yes';
   if(mandatoryFail) return 'No conforme';
@@ -721,8 +764,9 @@ function estadoLabel(estado){
   return t('statusIncompleto');
 }
 function checklistScore(checklist){
-  const total = CHECKLIST_DEFS.length;
-  const ok = CHECKLIST_DEFS.filter(c => checklist[c.id] && checklist[c.id] !== 'no').length;
+  const defs = getApplicableDefs(checklist);
+  const total = defs.length;
+  const ok = defs.filter(c => checklist[c.id] && checklist[c.id] !== 'no').length;
   return `${ok}/${total}`;
 }
 function periodLabel(anio, mDesde, mHasta){
@@ -747,7 +791,8 @@ function joinList(arr){
 
 function buildAutoSummaryText(){
   const checklist = getChecklistValues();
-  const answered = CHECKLIST_DEFS.filter(c => checklist[c.id]);
+  const defs = getApplicableDefs(checklist);
+  const answered = defs.filter(c => checklist[c.id]);
   if(!answered.length) return null;
 
   let responsable = document.getElementById('fResponsable').value;
@@ -767,18 +812,17 @@ function buildAutoSummaryText(){
   const periodo = periodLabel(anio, mDesde, mHasta);
 
   const cumplidos = [], incumplidos = [], noAplica = [];
-  CHECKLIST_DEFS.forEach(c=>{
+  defs.forEach(c=>{
     const v = checklist[c.id];
-    if(v==='yes') cumplidos.push(c.req[currentLang]);
-    else if(v==='no') incumplidos.push(c.req[currentLang]);
-    else if(v==='na') noAplica.push(c.req[currentLang]);
+    if(v==='yes') cumplidos.push(c[currentLang]);
+    else if(v==='no') incumplidos.push(c[currentLang]);
+    else if(v==='na') noAplica.push(c[currentLang]);
   });
 
   const parts = [];
   parts.push(t('sumIntro')(controlTxt, estandarTxt, frecuenciaTxt, responsable||'—', fecha, dataCenter, periodo));
-  if(cumplidos.length) parts.push(t('sumCumplidos')(joinList(cumplidos)));
-  if(incumplidos.length) parts.push(t('sumIncumplidos')(joinList(incumplidos)));
-  if(noAplica.length) parts.push(t('sumNA')(joinList(noAplica)));
+  parts.push(t('sumConteo')(cumplidos.length, defs.length, noAplica.length));
+  if(incumplidos.length) parts.push(t('sumIncumplidos')(incumplidos.map(x=>`"${x}"`).join('; ')));
 
   const deviationsFound = checklist.c5 === 'yes';
   const remediated = checklist.c6 === 'yes';
@@ -788,8 +832,8 @@ function buildAutoSummaryText(){
     parts.push(t('sumSinDesviaciones'));
   }
 
-  if(answered.length < CHECKLIST_DEFS.length){
-    parts.push(t('sumIncompleto')(CHECKLIST_DEFS.length - answered.length));
+  if(answered.length < defs.length){
+    parts.push(t('sumIncompleto')(defs.length - answered.length));
   } else {
     parts.push(t('sumResultado')(estadoLabel(computeEstado(checklist))));
   }
@@ -824,6 +868,10 @@ function resetForm(){
   document.getElementById('fMesDesde').value = '1';
   document.getElementById('fMesHasta').value = '3';
   document.getElementById('fObs').value = '';
+  document.getElementById('fToggleAP').checked = false;
+  document.getElementById('fToggleAcc').checked = false;
+  refreshAPBox();
+  refreshAccBox();
   setChecklistValues(null);
   updatePeriodPreview();
 }
@@ -905,6 +953,10 @@ function editRow(id){
   document.getElementById('fMesDesde').value = r.mesDesde;
   document.getElementById('fMesHasta').value = r.mesHasta;
   document.getElementById('fObs').value = r.observaciones || '';
+  document.getElementById('fToggleAP').checked = Object.prototype.hasOwnProperty.call(r.checklist||{}, 'cAP1');
+  document.getElementById('fToggleAcc').checked = Object.prototype.hasOwnProperty.call(r.checklist||{}, 'cACC1');
+  refreshAPBox();
+  refreshAccBox();
   setChecklistValues(r.checklist);
   updatePeriodPreview();
   window.scrollTo({top:0, behavior:'smooth'});
@@ -1013,7 +1065,7 @@ function renderTable(){
       </tr>`;
     let detailHtml = '';
     if(openDetailId === r.id){
-      const items = CHECKLIST_DEFS.map(c=>{
+      const items = getApplicableDefs(r.checklist).map(c=>{
         const v = r.checklist[c.id];
         const vLabel = v==='yes' ? (currentLang==='en'?'Yes':(currentLang==='pt'?'Sim':'Sí')) : (v==='no' ? (currentLang==='pt'?'Não':'No') : (v==='na' ? 'N/A' : '—'));
         return `<div>${escapeHtml(c[currentLang])} — <b>${escapeHtml(vLabel)}</b></div>`;
@@ -1065,7 +1117,7 @@ document.getElementById('btnExportExcel').addEventListener('click', ()=>{
     base[t('thFrecuencia')] = freqName(r.frecuencia);
     base[t('thPeriodo')] = periodLabel(r.anio,r.mesDesde,r.mesHasta);
     base[t('thResultado')] = estadoLabel(r.estado);
-    CHECKLIST_DEFS.forEach(c=>{
+    ALL_ITEM_DEFS.forEach(c=>{
       const v = r.checklist[c.id];
       base[c[currentLang]] = v==='yes' ? (currentLang==='en'?'Yes':(currentLang==='pt'?'Sim':'Sí')) : (v==='no' ? (currentLang==='pt'?'Não':'No') : (v==='na' ? 'N/A' : ''));
     });
@@ -1146,6 +1198,46 @@ document.getElementById('btnExportPdf').addEventListener('click', async ()=>{
     doc.setFont(undefined, 'normal');
 
     let yCursor = boxY + boxH + 7;
+
+    const dcMap = {};
+    rows.forEach(r=>{
+      const key = r.dataCenter || t('optDataCenterNA');
+      if(!dcMap[key]) dcMap[key] = {total:0, conf:0, noConf:0, inc:0};
+      dcMap[key].total++;
+      if(r.estado==='Conforme') dcMap[key].conf++;
+      else if(r.estado==='No conforme') dcMap[key].noConf++;
+      else dcMap[key].inc++;
+    });
+    const dcRows = Object.keys(dcMap).sort().map(k=>{
+      const d = dcMap[k];
+      const dcPct = d.total ? Math.round((d.conf/d.total)*100) : 0;
+      return [k, d.total, d.conf, d.noConf, d.inc, `${dcPct}%`];
+    });
+    if(dcRows.length > 1){
+      doc.setFontSize(10);
+      doc.setTextColor(82,37,130);
+      doc.setFont(undefined, 'bold');
+      doc.text(t('pdfByDCTitle'), 14, yCursor);
+      doc.setFont(undefined, 'normal');
+      yCursor += 4;
+      doc.autoTable({
+        startY: yCursor,
+        head: [[t('thDataCenter'), t('pdfColTotal'), t('statusConforme'), t('statusNoConforme'), t('statusIncompleto'), t('pdfPctLabel').replace(':','').trim()]],
+        body: dcRows,
+        styles: {fontSize:8, cellPadding:2},
+        headStyles: {fillColor:[82,37,130], textColor:255, fontSize:8.5},
+        alternateRowStyles: {fillColor:[250,249,252]},
+        didParseCell: (data)=>{
+          if(data.section!=='body') return;
+          if(data.column.index===3 && Number(data.cell.raw) > 0){
+            data.cell.styles.textColor = [214,69,69];
+            data.cell.styles.fontStyle = 'bold';
+          }
+        }
+      });
+      yCursor = doc.lastAutoTable.finalY + 8;
+    }
+
     const exceptions = rows.filter(r=>r.estado==='No conforme');
 
     if(exceptions.length){
@@ -1274,19 +1366,19 @@ async function buildReviewPdf(r){
   doc.setFont(undefined, 'normal');
   y += 4;
 
-  const checklistBody = CHECKLIST_DEFS.map(c=>{
+  const checklistBody = getApplicableDefs(r.checklist).map(c=>{
     const v = r.checklist[c.id];
     const vLabel = v==='yes' ? (currentLang==='en'?'Yes':(currentLang==='pt'?'Sim':'Sí')) : (v==='no' ? (currentLang==='pt'?'Não':'No') : (v==='na' ? 'N/A' : '—'));
-    return [c[currentLang], c.req[currentLang], vLabel];
+    return [c[currentLang], vLabel];
   });
   doc.autoTable({
     startY: y,
-    head: [[currentLang==='en'?'Checklist item':(currentLang==='pt'?'Item do checklist':'Punto del checklist'), currentLang==='en'?'Category':(currentLang==='pt'?'Categoria':'Categoría'), currentLang==='en'?'Answer':(currentLang==='pt'?'Resposta':'Respuesta')]],
+    head: [[currentLang==='en'?'Checklist item':(currentLang==='pt'?'Item do checklist':'Punto del checklist'), currentLang==='en'?'Answer':(currentLang==='pt'?'Resposta':'Respuesta')]],
     body: checklistBody,
     styles: {fontSize:8.5, cellPadding:2.5},
     headStyles: {fillColor:[82,37,130], textColor:255, fontSize:8.5},
     alternateRowStyles: {fillColor:[250,249,252]},
-    columnStyles: {0:{cellWidth:110}, 1:{cellWidth:40}, 2:{cellWidth:24}}
+    columnStyles: {0:{cellWidth:150}, 1:{cellWidth:24}}
   });
   y = doc.lastAutoTable.finalY + 8;
 
@@ -1365,6 +1457,8 @@ function applyLanguage(){
   fillDataCenterSelect();
   fillMonthSelects();
   buildChecklistUI();
+  refreshAPBox();
+  refreshAccBox();
   applyStaticI18n();
   if(!editingId){
     document.getElementById('formTitle').textContent = t('formTitleNew');
