@@ -1115,7 +1115,15 @@ async function buildReviewPdf(r){
 
   doc.setFontSize(9);
   doc.setTextColor(107,100,121);
-  doc.text(`${t('pdfGenerated')} ${new Date().toLocaleString(currentLang==='en'?'en-US':(currentLang==='pt'?'pt-BR':'es-CL'))}`, 50, 22);
+  const now = new Date();
+  let displayDate = now;
+  if(r.fecha){
+    const [fy,fm,fd] = r.fecha.split('-').map(n=>parseInt(n,10));
+    if(fy && fm && fd){
+      displayDate = new Date(fy, fm-1, fd, now.getHours(), now.getMinutes(), now.getSeconds());
+    }
+  }
+  doc.text(`${t('pdfGenerated')} ${displayDate.toLocaleString(currentLang==='en'?'en-US':(currentLang==='pt'?'pt-BR':'es-CL'))}`, 50, 22);
 
   let y = 34;
   const fieldPairs = [
