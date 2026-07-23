@@ -178,7 +178,11 @@
       </div>
     </div>
 
-    <div class="grid g2">
+    <div class="grid">
+      <div class="field">
+        <label data-i18n="lblDataCenter">Data Center</label>
+        <select id="fDataCenter"></select>
+      </div>
       <div class="field">
         <label data-i18n="lblControl">Control o actividad revisada</label>
         <input type="text" id="fControl" placeholder="">
@@ -213,6 +217,7 @@
 
     <button class="btn-primary" id="btnGuardar" data-i18n="btnGuardar">Guardar revisión</button>
     <button class="btn-ghost" id="btnCancelarEdicion" style="display:none;margin-left:8px;" data-i18n="btnCancelar">Cancelar edición</button>
+    <button class="btn-ghost" id="btnDescargarActual" style="margin-left:8px;" data-i18n="btnDescargarActual">Descargar informe de este checklist</button>
   </div>
 
   <div class="summary-row" id="summaryRow"></div>
@@ -222,6 +227,7 @@
     <p class="sub" data-i18n="tableSub">Filtra por responsable o resultado, y exporta el reporte ejecutivo.</p>
 
     <div class="tabs" id="respTabs"></div>
+    <div class="tabs" id="dcTabs"></div>
     <div class="tabs" id="statusTabs"></div>
 
     <div class="toolbar">
@@ -238,6 +244,7 @@
         <tr>
           <th data-i18n="thFecha">Fecha revisión</th>
           <th data-i18n="thResponsable">Responsable</th>
+          <th data-i18n="thDataCenter">Data Center</th>
           <th data-i18n="thEstandar">Estándar</th>
           <th data-i18n="thControl">Control revisado</th>
           <th data-i18n="thFrecuencia">Frecuencia</th>
@@ -318,15 +325,11 @@ const CHECKLIST_DEFS = [
     es:'Se conserva evidencia o soporte de la revisión (capturas, reportes, actas, exportes).',
     en:'Evidence or support for the review is kept (screenshots, reports, minutes, exports).',
     pt:'É mantida evidência ou suporte da revisão (capturas, relatórios, atas, exportações).',
-    req:{es:'Documentación', en:'Documentation', pt:'Documentação'}},
-  {id:'c8',
-    es:'El resultado fue reportado y cuenta con aprobación/firma del responsable del control.',
-    en:'The result was reported and has approval/sign-off from the control owner.',
-    pt:'O resultado foi reportado e conta com aprovação/assinatura do responsável pelo controle.',
-    req:{es:'Aprobación', en:'Approval', pt:'Aprovação'}}
+    req:{es:'Documentación', en:'Documentation', pt:'Documentação'}}
 ];
-const MANDATORY_OK = ['c1','c2','c3','c4','c7','c8'];
+const MANDATORY_OK = ['c1','c2','c3','c4','c7'];
 const RESP_LIST = ['Alejandro Carrasco','Paula Polanco','Heide Coelho'];
+const DC_LIST = ['QR01','QR02','QR03','QR04','BG01','SP01','SP02','SP03','SP04','RJ01','ST01','ST02'];
 
 const I18N = {
   es:{
@@ -341,6 +344,7 @@ const I18N = {
     lblResponsable:'Responsable', optSelect:'— Selecciona —', optOtro:'Otro (especificar)',
     phResponsableOtro:'Nombre y apellido',
     lblFecha:'Fecha de revisión', lblEstandar:'Estándar / Marco', lblFrecuencia:'Frecuencia',
+    lblDataCenter:'Data Center', optDataCenterNA:'No aplica / Corporativo',
     lblControl:'Control o actividad revisada',
     phControl:'Ej: Revisión de logs diarios, auditoría interna de bodega, revisión de accesos…',
     hintControl:'Describe libremente el control, tarea o rutina que estás validando.',
@@ -350,16 +354,22 @@ const I18N = {
     checklistTitle:'Checklist de validación', checklistSub:'Responde Sí / No / N-A para cada punto.',
     lblObs:'Observaciones', phObs:'Detalle de hallazgos, remediaciones aplicadas, contexto adicional…',
     btnGuardar:'Guardar revisión', btnGuardarCambios:'Guardar cambios', btnCancelar:'Cancelar edición',
+    btnDescargarActual:'Descargar informe de este checklist',
+    alertDescargarIncompleto:'Responde al menos un punto del checklist antes de descargar el informe.',
     statTotal:'Revisiones registradas', statConformes:'Conformes', statNoConformes:'No conformes',
     statIncompletos:'Incompletos', statPct:'% Cumplimiento',
     tableTitle:'Revisiones registradas', tableSub:'Filtra por responsable o resultado, y exporta el reporte ejecutivo.',
     searchPh:'Buscar por estándar, control, período u observaciones…',
     btnReset:'Borrar todo', btnExcel:'Descargar Excel', btnPdf:'Descargar PDF ejecutivo',
-    thFecha:'Fecha revisión', thResponsable:'Responsable', thEstandar:'Estándar', thControl:'Control revisado',
+    thFecha:'Fecha revisión', thResponsable:'Responsable', thDataCenter:'Data Center', thEstandar:'Estándar', thControl:'Control revisado',
     thFrecuencia:'Frecuencia', thPeriodo:'Período revisado', thChecklist:'Checklist', thResultado:'Resultado',
     emptyState:'Todavía no hay revisiones registradas. Completa el formulario de arriba para empezar.',
     tabTodos:'Todos', statusConforme:'Conforme', statusNoConforme:'No conforme', statusIncompleto:'Incompleto',
-    btnEditar:'Editar', btnEliminar:'Eliminar', sinObs:'Sin observaciones.',
+    btnEditar:'Editar', btnEliminar:'Eliminar', btnInforme:'Informe', sinObs:'Sin observaciones.',
+    pdfSingleTitle:'Informe de Revisión Individual — ODATA',
+    pdfSingleChecklistTitle:'DETALLE DEL CHECKLIST',
+    pdfSingleObsTitle:'OBSERVACIONES',
+    pdfColDataCenter:'Data Center',
     alertResponsable:'Selecciona o escribe el nombre del responsable.',
     alertFecha:'Selecciona la fecha de revisión.',
     alertEstandar:'Selecciona el estándar o marco.',
@@ -395,6 +405,7 @@ const I18N = {
     lblResponsable:'Owner', optSelect:'— Select —', optOtro:'Other (specify)',
     phResponsableOtro:'Full name',
     lblFecha:'Review date', lblEstandar:'Standard / Framework', lblFrecuencia:'Frequency',
+    lblDataCenter:'Data Center', optDataCenterNA:'Not applicable / Corporate',
     lblControl:'Control or activity reviewed',
     phControl:'E.g.: Daily log review, warehouse internal audit, access review…',
     hintControl:'Freely describe the control, task or routine you are validating.',
@@ -404,16 +415,22 @@ const I18N = {
     checklistTitle:'Validation checklist', checklistSub:'Answer Yes / No / N-A for each item.',
     lblObs:'Observations', phObs:'Findings detail, remediations applied, additional context…',
     btnGuardar:'Save review', btnGuardarCambios:'Save changes', btnCancelar:'Cancel editing',
+    btnDescargarActual:'Download this checklist report',
+    alertDescargarIncompleto:'Answer at least one checklist item before downloading the report.',
     statTotal:'Reviews recorded', statConformes:'Compliant', statNoConformes:'Non-compliant',
     statIncompletos:'Incomplete', statPct:'% Compliance',
     tableTitle:'Recorded reviews', tableSub:'Filter by owner or result, and export the executive report.',
     searchPh:'Search by standard, control, period or observations…',
     btnReset:'Clear all', btnExcel:'Download Excel', btnPdf:'Download executive PDF',
-    thFecha:'Review date', thResponsable:'Owner', thEstandar:'Standard', thControl:'Control reviewed',
+    thFecha:'Review date', thResponsable:'Owner', thDataCenter:'Data Center', thEstandar:'Standard', thControl:'Control reviewed',
     thFrecuencia:'Frequency', thPeriodo:'Period reviewed', thChecklist:'Checklist', thResultado:'Result',
     emptyState:'No reviews recorded yet. Fill in the form above to get started.',
     tabTodos:'All', statusConforme:'Compliant', statusNoConforme:'Non-compliant', statusIncompleto:'Incomplete',
-    btnEditar:'Edit', btnEliminar:'Delete', sinObs:'No observations.',
+    btnEditar:'Edit', btnEliminar:'Delete', btnInforme:'Report', sinObs:'No observations.',
+    pdfSingleTitle:'Individual Review Report — ODATA',
+    pdfSingleChecklistTitle:'CHECKLIST DETAIL',
+    pdfSingleObsTitle:'OBSERVATIONS',
+    pdfColDataCenter:'Data Center',
     alertResponsable:"Select or type the owner's name.",
     alertFecha:'Select the review date.',
     alertEstandar:'Select the standard or framework.',
@@ -449,6 +466,7 @@ const I18N = {
     lblResponsable:'Responsável', optSelect:'— Selecione —', optOtro:'Outro (especificar)',
     phResponsableOtro:'Nome completo',
     lblFecha:'Data da revisão', lblEstandar:'Norma / Padrão', lblFrecuencia:'Frequência',
+    lblDataCenter:'Data Center', optDataCenterNA:'Não aplicável / Corporativo',
     lblControl:'Controle ou atividade revisada',
     phControl:'Ex: Revisão de logs diários, auditoria interna de armazém, revisão de acessos…',
     hintControl:'Descreva livremente o controle, tarefa ou rotina que está validando.',
@@ -458,16 +476,22 @@ const I18N = {
     checklistTitle:'Checklist de validação', checklistSub:'Responda Sim / Não / N/A para cada item.',
     lblObs:'Observações', phObs:'Detalhe de achados, remediações aplicadas, contexto adicional…',
     btnGuardar:'Salvar revisão', btnGuardarCambios:'Salvar alterações', btnCancelar:'Cancelar edição',
+    btnDescargarActual:'Baixar relatório deste checklist',
+    alertDescargarIncompleto:'Responda pelo menos um item do checklist antes de baixar o relatório.',
     statTotal:'Revisões registradas', statConformes:'Conformes', statNoConformes:'Não conformes',
     statIncompletos:'Incompletas', statPct:'% Conformidade',
     tableTitle:'Revisões registradas', tableSub:'Filtre por responsável ou resultado, e exporte o relatório executivo.',
     searchPh:'Buscar por norma, controle, período ou observações…',
     btnReset:'Apagar tudo', btnExcel:'Baixar Excel', btnPdf:'Baixar PDF executivo',
-    thFecha:'Data da revisão', thResponsable:'Responsável', thEstandar:'Norma', thControl:'Controle revisado',
+    thFecha:'Data da revisão', thResponsable:'Responsável', thDataCenter:'Data Center', thEstandar:'Norma', thControl:'Controle revisado',
     thFrecuencia:'Frequência', thPeriodo:'Período revisado', thChecklist:'Checklist', thResultado:'Resultado',
     emptyState:'Ainda não há revisões registradas. Preencha o formulário acima para começar.',
     tabTodos:'Todos', statusConforme:'Conforme', statusNoConforme:'Não conforme', statusIncompleto:'Incompleta',
-    btnEditar:'Editar', btnEliminar:'Excluir', sinObs:'Sem observações.',
+    btnEditar:'Editar', btnEliminar:'Excluir', btnInforme:'Relatório', sinObs:'Sem observações.',
+    pdfSingleTitle:'Relatório de Revisão Individual — ODATA',
+    pdfSingleChecklistTitle:'DETALHE DO CHECKLIST',
+    pdfSingleObsTitle:'OBSERVAÇÕES',
+    pdfColDataCenter:'Data Center',
     alertResponsable:'Selecione ou digite o nome do responsável.',
     alertFecha:'Selecione a data da revisão.',
     alertEstandar:'Selecione a norma ou padrão.',
@@ -503,6 +527,7 @@ const STORAGE_KEY = 'sgi_revisiones_control_odata_v1';
 let rows = [];
 let editingId = null;
 let currentRespFilter = 'Todos';
+let currentDCFilter = 'Todos';
 let currentStatusFilter = 'Todos';
 let openDetailId = null;
 
@@ -527,6 +552,7 @@ function migrateOldEntry(r){
     responsable: r.responsable,
     fecha: r.fecha,
     estandar: 'pci',
+    dataCenter: r.dataCenter || '',
     frecuencia: (r.frecuencia||'').toLowerCase().includes('trim') ? 'trimestral' : (r.frecuencia||'').toLowerCase().includes('sem') ? 'semestral' : (r.frecuencia||'').toLowerCase().includes('anu') ? 'anual' : 'otra',
     controlLabel: r.tipo || '',
     anio: r.anio, mesDesde: r.mesDesde, mesHasta: r.mesHasta,
@@ -567,6 +593,14 @@ function fillSelect(id, list, codeKey='code'){
   const prev = el.value;
   el.innerHTML = list.map(item => `<option value="${item[codeKey]}">${escapeHtml(item[currentLang])}</option>`).join('');
   if(prev && list.some(i=>i[codeKey]===prev)) el.value = prev;
+}
+function fillDataCenterSelect(){
+  const el = document.getElementById('fDataCenter');
+  const prev = el.value;
+  const opts = ['<option value="">'+escapeHtml(t('optDataCenterNA'))+'</option>']
+    .concat(DC_LIST.map(dc => `<option value="${dc}">${dc}</option>`));
+  el.innerHTML = opts.join('');
+  el.value = prev || '';
 }
 function fillMonthSelects(){
   const meses = MESES[currentLang];
@@ -669,6 +703,7 @@ function resetForm(){
   document.getElementById('fFecha').value = todayISO();
   document.getElementById('fEstandar').value = '';
   document.getElementById('fFrecuencia').value = '';
+  document.getElementById('fDataCenter').value = '';
   document.getElementById('fControl').value = '';
   document.getElementById('fAnio').value = new Date().getFullYear();
   document.getElementById('fMesDesde').value = '1';
@@ -692,6 +727,7 @@ document.getElementById('btnGuardar').addEventListener('click', ()=>{
   const fecha = document.getElementById('fFecha').value;
   const estandar = document.getElementById('fEstandar').value;
   const frecuencia = document.getElementById('fFrecuencia').value;
+  const dataCenter = document.getElementById('fDataCenter').value;
   const controlLabel = document.getElementById('fControl').value.trim();
   const anio = document.getElementById('fAnio').value;
   const mDesde = parseInt(document.getElementById('fMesDesde').value,10);
@@ -712,7 +748,7 @@ document.getElementById('btnGuardar').addEventListener('click', ()=>{
 
   const entry = {
     id: editingId || uid(),
-    responsable, fecha, estandar, frecuencia, controlLabel,
+    responsable, fecha, estandar, frecuencia, dataCenter, controlLabel,
     anio: parseInt(anio,10), mesDesde: mDesde, mesHasta: mHasta,
     checklist,
     estado: computeEstado(checklist),
@@ -748,6 +784,7 @@ function editRow(id){
   document.getElementById('fFecha').value = r.fecha;
   document.getElementById('fEstandar').value = r.estandar;
   document.getElementById('fFrecuencia').value = r.frecuencia;
+  document.getElementById('fDataCenter').value = r.dataCenter || '';
   document.getElementById('fControl').value = r.controlLabel;
   document.getElementById('fAnio').value = r.anio;
   document.getElementById('fMesDesde').value = r.mesDesde;
@@ -770,9 +807,10 @@ function filteredRows(){
   const search = document.getElementById('searchBox').value.trim().toLowerCase();
   return rows.filter(r=>{
     if(currentRespFilter !== 'Todos' && r.responsable !== currentRespFilter) return false;
+    if(currentDCFilter !== 'Todos' && (r.dataCenter || t('optDataCenterNA')) !== currentDCFilter) return false;
     if(currentStatusFilter !== 'Todos' && r.estado !== currentStatusFilter) return false;
     if(search){
-      const hay = `${estName(r.estandar)} ${r.controlLabel} ${periodLabel(r.anio,r.mesDesde,r.mesHasta)} ${r.observaciones}`.toLowerCase();
+      const hay = `${estName(r.estandar)} ${r.controlLabel} ${r.dataCenter||''} ${periodLabel(r.anio,r.mesDesde,r.mesHasta)} ${r.observaciones}`.toLowerCase();
       if(!hay.includes(search)) return false;
     }
     return true;
@@ -789,6 +827,17 @@ function renderTabs(){
   }).join('');
   respTabs.querySelectorAll('.tab').forEach(el=>el.addEventListener('click', ()=>{
     currentRespFilter = el.dataset.resp; render();
+  }));
+
+  const dcNames = Array.from(new Set(rows.map(r=>r.dataCenter || t('optDataCenterNA')))).sort();
+  const dcTabs = document.getElementById('dcTabs');
+  dcTabs.innerHTML = ['Todos', ...dcNames].map(name=>{
+    const cnt = name==='Todos' ? rows.length : rows.filter(r=>(r.dataCenter || t('optDataCenterNA'))===name).length;
+    const label = name==='Todos' ? t('tabTodos') : name;
+    return `<div class="tab ${currentDCFilter===name?'active':''}" data-dc="${escapeHtml(name)}">${escapeHtml(label)} <span style="opacity:.7">${cnt}</span></div>`;
+  }).join('');
+  dcTabs.querySelectorAll('.tab').forEach(el=>el.addEventListener('click', ()=>{
+    currentDCFilter = el.dataset.dc; render();
   }));
 
   const statusTabs = document.getElementById('statusTabs');
@@ -834,6 +883,7 @@ function renderTable(){
       <tr data-id="${r.id}" class="main-row">
         <td>${formatFechaEs(r.fecha)}</td>
         <td>${escapeHtml(r.responsable)}</td>
+        <td>${r.dataCenter ? `<span class="badge freq">${escapeHtml(r.dataCenter)}</span>` : '—'}</td>
         <td>${escapeHtml(estName(r.estandar))}</td>
         <td>${escapeHtml(r.controlLabel)}</td>
         <td><span class="badge freq">${escapeHtml(freqName(r.frecuencia))}</span></td>
@@ -841,6 +891,7 @@ function renderTable(){
         <td>${checklistScore(r.checklist)}</td>
         <td><span class="badge ${badgeClass}">${escapeHtml(estadoLabel(r.estado))}</span></td>
         <td style="white-space:nowrap;">
+          <button class="btn-ghost btn-sm" onclick="downloadSingleReport('${r.id}')">${escapeHtml(t('btnInforme'))}</button>
           <button class="btn-ghost btn-sm" onclick="editRow('${r.id}')">${escapeHtml(t('btnEditar'))}</button>
           <button class="btn-danger-ghost btn-sm" onclick="deleteRow('${r.id}')">${escapeHtml(t('btnEliminar'))}</button>
         </td>
@@ -853,7 +904,7 @@ function renderTable(){
         return `<div>${escapeHtml(c[currentLang])} — <b>${escapeHtml(vLabel)}</b></div>`;
       }).join('');
       detailHtml = `
-        <tr class="row-detail"><td colspan="9">
+        <tr class="row-detail"><td colspan="10">
           <div class="detail-grid">${items}</div>
           <div class="detail-obs">${r.observaciones ? escapeHtml(r.observaciones) : escapeHtml(t('sinObs'))}</div>
         </td></tr>`;
@@ -893,6 +944,7 @@ document.getElementById('btnExportExcel').addEventListener('click', ()=>{
     const base = {};
     base[t('thFecha')] = formatFechaEs(r.fecha);
     base[t('thResponsable')] = r.responsable;
+    base[t('thDataCenter')] = r.dataCenter || '';
     base[t('thEstandar')] = estName(r.estandar);
     base[t('thControl')] = r.controlLabel;
     base[t('thFrecuencia')] = freqName(r.frecuencia);
@@ -991,8 +1043,8 @@ document.getElementById('btnExportPdf').addEventListener('click', async ()=>{
 
       doc.autoTable({
         startY: yCursor,
-        head: [[t('pdfColFecha'), t('pdfColResponsable'), t('pdfColEstandar'), t('pdfColControl'), t('pdfColPeriodo'), t('pdfColObs')]],
-        body: exceptions.map(r=>[formatFechaEs(r.fecha), r.responsable, estName(r.estandar), r.controlLabel, periodLabel(r.anio,r.mesDesde,r.mesHasta), r.observaciones || '—']),
+        head: [[t('pdfColFecha'), t('pdfColResponsable'), t('pdfColDataCenter'), t('pdfColEstandar'), t('pdfColControl'), t('pdfColPeriodo'), t('pdfColObs')]],
+        body: exceptions.map(r=>[formatFechaEs(r.fecha), r.responsable, r.dataCenter || '—', estName(r.estandar), r.controlLabel, periodLabel(r.anio,r.mesDesde,r.mesHasta), r.observaciones || '—']),
         styles: {fontSize:7.5, cellPadding:1.5, minCellHeight:9},
         headStyles: {fillColor:[214,69,69], textColor:255, fontSize:8},
         bodyStyles: {fillColor:[253,246,246]},
@@ -1018,8 +1070,8 @@ document.getElementById('btnExportPdf').addEventListener('click', async ()=>{
 
     doc.autoTable({
       startY: yCursor,
-      head: [[t('pdfColFecha'), t('pdfColResponsable'), t('pdfColEstandar'), t('pdfColControl'), t('pdfColFrecuencia'), t('pdfColPeriodo'), t('pdfColChecklist'), t('pdfColResultado')]],
-      body: rows.map(r=>[formatFechaEs(r.fecha), r.responsable, estName(r.estandar), r.controlLabel, freqName(r.frecuencia), periodLabel(r.anio,r.mesDesde,r.mesHasta), checklistScore(r.checklist), estadoLabel(r.estado)]),
+      head: [[t('pdfColFecha'), t('pdfColResponsable'), t('pdfColDataCenter'), t('pdfColEstandar'), t('pdfColControl'), t('pdfColFrecuencia'), t('pdfColPeriodo'), t('pdfColChecklist'), t('pdfColResultado')]],
+      body: rows.map(r=>[formatFechaEs(r.fecha), r.responsable, r.dataCenter || '—', estName(r.estandar), r.controlLabel, freqName(r.frecuencia), periodLabel(r.anio,r.mesDesde,r.mesHasta), checklistScore(r.checklist), estadoLabel(r.estado)]),
       styles: {fontSize:7.5, cellPadding:1.5, minCellHeight:9},
       headStyles: {fillColor:[82,37,130], textColor:255, fontSize:8},
       alternateRowStyles: {fillColor:[250,249,252]},
@@ -1027,7 +1079,7 @@ document.getElementById('btnExportPdf').addEventListener('click', async ()=>{
         if(data.section!=='body') return;
         const row = rows[data.row.index];
         if(row && row.estado==='No conforme'){ data.cell.styles.fillColor = [251,234,234]; }
-        if(data.column.index===7){
+        if(data.column.index===8){
           const map = {}; map[t('statusConforme')]=[30,143,95]; map[t('statusNoConforme')]=[214,69,69]; map[t('statusIncompleto')]=[150,99,23];
           const color = map[data.cell.raw];
           if(color){ data.cell.styles.textColor = color; data.cell.styles.fontStyle = 'bold'; }
@@ -1046,6 +1098,130 @@ document.getElementById('btnExportPdf').addEventListener('click', async ()=>{
   }
 });
 
+/* ================= Informe individual (una revisión) ================= */
+async function buildReviewPdf(r){
+  try{ await ensureAutoTable(); }
+  catch(err){ alert(err.message); return null; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+
+  const logoW = 30, logoH = logoW * LOGO_ODATA_RATIO;
+  try{ doc.addImage(LOGO_ODATA_B64, 'PNG', 14, 10, logoW, logoH); }catch(err){}
+
+  doc.setFontSize(14);
+  doc.setTextColor(82,37,130);
+  doc.text(t('pdfSingleTitle'), 50, 16);
+
+  doc.setFontSize(9);
+  doc.setTextColor(107,100,121);
+  doc.text(`${t('pdfGenerated')} ${new Date().toLocaleString(currentLang==='en'?'en-US':(currentLang==='pt'?'pt-BR':'es-CL'))}`, 50, 22);
+
+  let y = 34;
+  const fieldPairs = [
+    [t('pdfColFecha'), r.fecha ? formatFechaEs(r.fecha) : '—'],
+    [t('pdfColResponsable'), r.responsable || '—'],
+    [t('pdfColDataCenter'), r.dataCenter || '—'],
+    [t('pdfColEstandar'), r.estandar ? estName(r.estandar) : '—'],
+    [t('pdfColControl'), r.controlLabel || '—'],
+    [t('pdfColFrecuencia'), r.frecuencia ? freqName(r.frecuencia) : '—'],
+    [t('pdfColPeriodo'), periodLabel(r.anio,r.mesDesde,r.mesHasta)],
+    [t('pdfColResultado'), estadoLabel(r.estado)]
+  ];
+  doc.setDrawColor(228,225,236);
+  doc.setFillColor(246,245,249);
+  doc.roundedRect(14, y, 182, fieldPairs.length*6 + 6, 2, 2, 'FD');
+  let fy = y + 7;
+  fieldPairs.forEach(([label, value])=>{
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(82,37,130);
+    doc.text(`${label}:`, 18, fy);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(33,26,43);
+    doc.text(String(value), 65, fy);
+    fy += 6;
+  });
+  y = fy + 8;
+
+  doc.setFontSize(10);
+  doc.setTextColor(82,37,130);
+  doc.setFont(undefined, 'bold');
+  doc.text(t('pdfSingleChecklistTitle'), 14, y);
+  doc.setFont(undefined, 'normal');
+  y += 4;
+
+  const checklistBody = CHECKLIST_DEFS.map(c=>{
+    const v = r.checklist[c.id];
+    const vLabel = v==='yes' ? (currentLang==='en'?'Yes':(currentLang==='pt'?'Sim':'Sí')) : (v==='no' ? (currentLang==='pt'?'Não':'No') : (v==='na' ? 'N/A' : '—'));
+    return [c[currentLang], c.req[currentLang], vLabel];
+  });
+  doc.autoTable({
+    startY: y,
+    head: [[currentLang==='en'?'Checklist item':(currentLang==='pt'?'Item do checklist':'Punto del checklist'), currentLang==='en'?'Category':(currentLang==='pt'?'Categoria':'Categoría'), currentLang==='en'?'Answer':(currentLang==='pt'?'Resposta':'Respuesta')]],
+    body: checklistBody,
+    styles: {fontSize:8.5, cellPadding:2.5},
+    headStyles: {fillColor:[82,37,130], textColor:255, fontSize:8.5},
+    alternateRowStyles: {fillColor:[250,249,252]},
+    columnStyles: {0:{cellWidth:110}, 1:{cellWidth:40}, 2:{cellWidth:24}}
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  if(y > 260){ doc.addPage(); y = 15; }
+  doc.setFontSize(10);
+  doc.setTextColor(82,37,130);
+  doc.setFont(undefined, 'bold');
+  doc.text(t('pdfSingleObsTitle'), 14, y);
+  doc.setFont(undefined, 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(33,26,43);
+  y += 6;
+  const obsText = r.observaciones ? r.observaciones : t('sinObs');
+  const wrapped = doc.splitTextToSize(obsText, 182);
+  doc.text(wrapped, 14, y);
+
+  return doc;
+}
+
+async function downloadSingleReport(id){
+  const r = rows.find(x=>x.id===id);
+  if(!r) return;
+  const doc = await buildReviewPdf(r);
+  if(!doc) return;
+  const safeResp = (r.responsable||'revision').replace(/[^a-z0-9]+/gi,'_');
+  doc.save(`informe_revision_${safeResp}_${r.fecha||'sf'}.pdf`);
+}
+window.downloadSingleReport = downloadSingleReport;
+
+async function downloadCurrentFormReport(){
+  let responsable = document.getElementById('fResponsable').value;
+  if(responsable === '__otro__'){ responsable = document.getElementById('fResponsableOtro').value.trim(); }
+  const checklist = getChecklistValues();
+  const answered = CHECKLIST_DEFS.filter(c => checklist[c.id]);
+  if(!answered.length){ alert(t('alertDescargarIncompleto')); return; }
+
+  const formEntry = {
+    responsable,
+    fecha: document.getElementById('fFecha').value,
+    estandar: document.getElementById('fEstandar').value,
+    frecuencia: document.getElementById('fFrecuencia').value,
+    dataCenter: document.getElementById('fDataCenter').value,
+    controlLabel: document.getElementById('fControl').value.trim(),
+    anio: document.getElementById('fAnio').value,
+    mesDesde: parseInt(document.getElementById('fMesDesde').value,10),
+    mesHasta: parseInt(document.getElementById('fMesHasta').value,10),
+    checklist,
+    estado: computeEstado(checklist),
+    observaciones: document.getElementById('fObs').value.trim()
+  };
+
+  const doc = await buildReviewPdf(formEntry);
+  if(!doc) return;
+  const safeResp = (formEntry.responsable||'revision').replace(/[^a-z0-9]+/gi,'_');
+  doc.save(`informe_revision_${safeResp}_${formEntry.fecha||'sf'}.pdf`);
+}
+document.getElementById('btnDescargarActual').addEventListener('click', downloadCurrentFormReport);
+
 /* ================= Aplicar idioma ================= */
 function applyStaticI18n(){
   document.querySelectorAll('[data-i18n]').forEach(el=>{
@@ -1063,6 +1239,7 @@ function applyStaticI18n(){
 function applyLanguage(){
   fillSelect('fEstandar', ESTANDARES);
   fillSelect('fFrecuencia', FRECUENCIAS);
+  fillDataCenterSelect();
   fillMonthSelects();
   buildChecklistUI();
   applyStaticI18n();
@@ -1089,6 +1266,7 @@ applyTheme();
 load();
 fillSelect('fEstandar', ESTANDARES);
 fillSelect('fFrecuencia', FRECUENCIAS);
+fillDataCenterSelect();
 fillMonthSelects();
 buildChecklistUI();
 applyStaticI18n();
