@@ -309,6 +309,86 @@
     .mobile-action-bar button{flex:1;min-height:48px;font-size:14px;}
   }
   .mobile-action-bar{display:none;}
+
+  /* ================= Notas de campo (bitácora del auditor) ================= */
+  .notes-fab{
+    position:fixed;right:22px;bottom:26px;z-index:70;
+    width:56px;height:56px;border-radius:50%;
+    background:var(--purple);color:#fff;font-size:22px;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 14px rgba(82,37,130,.35);border:none;padding:0;
+  }
+  .notes-fab:hover{background:var(--purple-dark);}
+  .notes-fab-badge{
+    position:absolute;top:-4px;right:-4px;background:var(--green);color:var(--purple-dark);
+    font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;padding:0 5px;
+    border:2px solid #fff;
+  }
+  .notes-overlay{
+    display:none;position:fixed;inset:0;z-index:80;
+    background:rgba(33,26,43,.45);
+    align-items:flex-end;justify-content:center;
+  }
+  .notes-overlay.open{display:flex;}
+  .notes-drawer{
+    background:#fff;width:100%;max-width:560px;max-height:82vh;
+    border-radius:18px 18px 0 0;padding:18px 20px calc(18px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;gap:12px;overflow:hidden;
+    box-shadow:0 -6px 24px rgba(33,26,43,.18);
+  }
+  .notes-drawer-header{display:flex;align-items:center;justify-content:space-between;}
+  .notes-drawer-header h3{margin:0;color:var(--purple-dark);font-size:16px;}
+  .notes-input-row{display:flex;gap:8px;align-items:center;}
+  .notes-input-row select{
+    flex:1;padding:9px 10px;border-radius:8px;border:1px solid var(--line);font-size:13px;background:#fff;
+  }
+  #btnMicNote{
+    width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid var(--line);
+    color:var(--purple);font-size:16px;padding:0;flex-shrink:0;
+  }
+  #btnMicNote.recording{background:var(--red);border-color:var(--red);color:#fff;animation:pulseMic 1s infinite;}
+  #btnPhotoNote{
+    width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid var(--line);
+    color:var(--purple);font-size:16px;padding:0;flex-shrink:0;
+  }
+  .listening-hint{
+    font-size:11.5px;color:var(--purple-dark);font-style:italic;min-height:16px;
+    display:flex;align-items:center;gap:6px;
+  }
+  .listening-hint .dot{width:6px;height:6px;border-radius:50%;background:var(--red);animation:pulseMic 1s infinite;}
+  .photo-preview{position:relative;display:inline-block;}
+  .photo-preview img{max-width:120px;max-height:90px;border-radius:8px;border:1px solid var(--line);display:block;}
+  .photo-preview .photo-remove{
+    position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;
+    background:var(--red);color:#fff;border:2px solid #fff;font-size:12px;font-weight:800;
+    padding:0;min-height:auto;display:flex;align-items:center;justify-content:center;
+  }
+  .note-photo{max-width:100%;border-radius:8px;margin-top:6px;display:block;cursor:zoom-in;}
+  @keyframes pulseMic{0%{box-shadow:0 0 0 0 rgba(214,69,69,.5);}70%{box-shadow:0 0 0 10px rgba(214,69,69,0);}100%{box-shadow:0 0 0 0 rgba(214,69,69,0);}}
+  #noteText{
+    width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);font-family:inherit;
+    font-size:13.5px;resize:vertical;min-height:64px;
+  }
+  .notes-list{overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:2px;}
+  .notes-empty{font-size:12.5px;color:var(--ink-soft);text-align:center;padding:16px 0;}
+  .note-item{
+    background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;position:relative;
+  }
+  .note-meta{display:flex;justify-content:space-between;gap:8px;margin-bottom:4px;}
+  .note-tag{
+    font-size:10.5px;font-weight:800;color:var(--purple-dark);background:var(--green-bg);
+    padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.3px;
+  }
+  .note-time{font-size:11px;color:var(--ink-soft);}
+  .note-text{font-size:13px;color:var(--ink);white-space:pre-wrap;word-break:break-word;}
+  .note-del{
+    margin-top:6px;background:none;border:none;color:var(--red);font-size:11.5px;font-weight:700;
+    padding:0;min-height:auto;text-decoration:underline;
+  }
+  @media (max-width:720px){
+    .notes-fab{bottom:84px;right:16px;}
+  }
 </style>
 </head>
 <body>
@@ -457,6 +537,30 @@
       <button class="btn-green" id="btnExportExcelMobile">Excel</button>
       <button class="btn-primary" id="btnExportPdfMobile">PDF</button>
     </div>
+
+    <button class="notes-fab no-print" id="btnOpenNotes" title="Notas de campo">
+      🗒️<span class="notes-fab-badge" id="notesBadge" style="display:none;">0</span>
+    </button>
+
+    <div class="notes-overlay no-print" id="notesOverlay">
+      <div class="notes-drawer">
+        <div class="notes-drawer-header">
+          <h3>Notas de campo</h3>
+          <button class="btn-ghost btn-sm" id="btnCloseNotes">Cerrar</button>
+        </div>
+        <div class="notes-input-row">
+          <select id="noteTag"></select>
+          <button class="btn-ghost" id="btnMicNote" title="Dictar por voz">🎤</button>
+          <button class="btn-ghost" id="btnPhotoNote" title="Adjuntar foto">📷</button>
+          <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">
+        </div>
+        <div class="listening-hint" id="listeningHint"></div>
+        <div id="photoPreviewWrap"></div>
+        <textarea id="noteText" placeholder="Escribe o dicta una nota rápida (hallazgo, pendiente, contexto de la visita)…" rows="3"></textarea>
+        <button class="btn-primary btn-sm" id="btnSaveNote">Guardar nota</button>
+        <div class="notes-list" id="notesList"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -509,6 +613,7 @@ let currentCategory = '__ALL__';
 let currentStatusFilter = '__ALL__';
 let searchTerm = '';
 let coverData = {}; // { QR01: {auditor, fecha, responsableDC, tipoActivos} }
+let fieldNotes = []; // {id, ts, sitio, tag, text} — bitácora de notas tomadas durante el recorrido
 
 const $ = s => document.querySelector(s);
 
@@ -687,7 +792,7 @@ $('#btnEditCover').addEventListener('click', ()=>{
 // No depende de conexión a internet ni de ningún servidor externo.
 async function saveState(){
   try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({rows, mapping, coverData, currentSite, savedAt: Date.now()}));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({rows, mapping, coverData, currentSite, fieldNotes, savedAt: Date.now()}));
   }catch(err){ console.error('No se pudo guardar localmente', err); }
 }
 async function checkResume(){
@@ -707,6 +812,7 @@ $('#btnResume').addEventListener('click', ()=>{
   const data = window.__resumeData;
   rows = data.rows; mapping = data.mapping; coverData = data.coverData || {};
   currentSite = data.currentSite || '__ALL__';
+  fieldNotes = data.fieldNotes || [];
   $('#resumeBar').style.display='none';
   $('#uploadScreen').style.display='none';
   $('#coverScreen').style.display='none';
@@ -717,6 +823,187 @@ $('#btnDiscard').addEventListener('click', async ()=>{
   try{ localStorage.removeItem(STORAGE_KEY); }catch(err){}
   $('#resumeBar').style.display='none';
   $('#coverScreen').style.display='block';
+});
+
+// ---------- Notas de campo (bitácora libre + dictado por voz) ----------
+// Notas "generales" (sitio:'') aparecen siempre; las notas tomadas mientras
+// se audita un DC quedan etiquetadas con ese sitio.
+function notesForCurrentSite(){
+  return fieldNotes.filter(n => currentSite==='__ALL__' || !n.sitio || n.sitio===currentSite);
+}
+function updateNotesBadge(){
+  const badge = $('#notesBadge');
+  if(!badge) return;
+  const count = notesForCurrentSite().length;
+  if(count>0){ badge.style.display='flex'; badge.textContent = count; }
+  else { badge.style.display='none'; }
+}
+function updateNoteTagOptions(){
+  const sel = $('#noteTag');
+  const cats = Array.from(new Set(rows.map(r=>r.categoria).filter(Boolean))).sort();
+  const opts = ['General', ...cats, 'Zona / ubicación', 'Acceso y seguridad', 'Otro'];
+  sel.innerHTML = opts.map(o=>`<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
+}
+function renderNotesList(){
+  const list = $('#notesList');
+  const items = notesForCurrentSite().slice().sort((a,b)=>b.ts-a.ts);
+  if(!items.length){
+    list.innerHTML = '<div class="notes-empty">Todavía no hay notas registradas. Usa el botón 🎤 o escribe arriba.</div>';
+  } else {
+    list.innerHTML = items.map(n => `
+      <div class="note-item">
+        <div class="note-meta">
+          <span class="note-tag">${escapeHtml(n.tag)}</span>
+          <span class="note-time">${new Date(n.ts).toLocaleString('es-CL')}</span>
+        </div>
+        <div class="note-text">${escapeHtml(n.text)}</div>
+        ${n.photo ? `<img class="note-photo" src="${n.photo}" alt="Foto de la nota" onclick="window.open(this.src,'_blank')">` : ''}
+        <button class="note-del" data-id="${n.id}">Eliminar</button>
+      </div>
+    `).join('');
+  }
+  updateNotesBadge();
+}
+$('#btnOpenNotes').addEventListener('click', ()=>{
+  updateNoteTagOptions();
+  renderNotesList();
+  $('#notesOverlay').classList.add('open');
+  $('#noteText').focus();
+});
+$('#btnCloseNotes').addEventListener('click', ()=> $('#notesOverlay').classList.remove('open'));
+$('#notesOverlay').addEventListener('click', e=>{
+  if(e.target.id === 'notesOverlay') $('#notesOverlay').classList.remove('open');
+});
+
+// ---- Foto adjunta a la nota (se redimensiona antes de guardar, para no llenar el almacenamiento local) ----
+let pendingPhoto = null;
+function resizeImageFile(file){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = e=>{ img.src = e.target.result; };
+    reader.onerror = reject;
+    img.onload = ()=>{
+      const maxW = 900;
+      const scale = Math.min(1, maxW / img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', 0.6));
+    };
+    img.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+function renderPhotoPreview(){
+  const wrap = $('#photoPreviewWrap');
+  if(!pendingPhoto){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `
+    <div class="photo-preview">
+      <img src="${pendingPhoto}" alt="Foto a adjuntar">
+      <button class="photo-remove" id="btnRemovePhoto" title="Quitar foto">✕</button>
+    </div>`;
+  $('#btnRemovePhoto').addEventListener('click', ()=>{ pendingPhoto = null; renderPhotoPreview(); });
+}
+$('#btnPhotoNote').addEventListener('click', ()=> $('#photoInput').click());
+$('#photoInput').addEventListener('change', async e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    pendingPhoto = await resizeImageFile(file);
+    renderPhotoPreview();
+  }catch(err){ alert('No se pudo procesar la foto.'); }
+  e.target.value = '';
+});
+
+$('#btnSaveNote').addEventListener('click', ()=>{
+  const text = $('#noteText').value.trim();
+  if(!text && !pendingPhoto) return;
+  const tag = $('#noteTag').value || 'General';
+  fieldNotes.push({
+    id: `${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
+    ts: Date.now(),
+    sitio: SITE_CODES.includes(currentSite) ? currentSite : '',
+    tag,
+    text: text || '(sin texto, ver foto adjunta)',
+    photo: pendingPhoto || null
+  });
+  $('#noteText').value = '';
+  pendingPhoto = null;
+  renderPhotoPreview();
+  saveState();
+  renderNotesList();
+});
+$('#notesList').addEventListener('click', e=>{
+  if(!e.target.classList.contains('note-del')) return;
+  const id = e.target.dataset.id;
+  fieldNotes = fieldNotes.filter(n => String(n.id) !== String(id));
+  saveState();
+  renderNotesList();
+});
+
+// Dictado por voz — Web Speech API (Chrome/Edge), en modo continuo: sigue
+// escuchando aunque hagas pausas cortas al caminar, hasta que toques el
+// micrófono de nuevo para detenerlo. Los tramos finalizados se van
+// agregando al cuadro de texto; el tramo en curso se muestra como vista previa.
+let speechRecognizer = null, isListening = false, userStoppedListening = true;
+const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+if(SpeechRecognitionCtor){
+  speechRecognizer = new SpeechRecognitionCtor();
+  speechRecognizer.lang = 'es-CL';
+  speechRecognizer.continuous = true;
+  speechRecognizer.interimResults = true;
+  speechRecognizer.onresult = e=>{
+    const ta = $('#noteText');
+    let interim = '';
+    for(let i=e.resultIndex; i<e.results.length; i++){
+      const transcript = e.results[i][0].transcript;
+      if(e.results[i].isFinal){
+        ta.value = ta.value ? `${ta.value.trim()} ${transcript.trim()}` : transcript.trim();
+      } else {
+        interim += transcript;
+      }
+    }
+    $('#listeningHint').innerHTML = interim
+      ? `<span class="dot"></span> Escuchando… "${escapeHtml(interim.trim())}"`
+      : '<span class="dot"></span> Escuchando…';
+  };
+  speechRecognizer.onend = ()=>{
+    // Algunos navegadores cortan solos tras un rato de silencio; si el usuario
+    // no lo detuvo a propósito, se reinicia para que el dictado siga corriendo.
+    if(!userStoppedListening){
+      try{ speechRecognizer.start(); return; }catch(err){ /* sigue abajo y se apaga */ }
+    }
+    isListening = false;
+    $('#btnMicNote').classList.remove('recording');
+    $('#listeningHint').textContent = '';
+  };
+  speechRecognizer.onerror = ()=>{
+    isListening = false;
+    userStoppedListening = true;
+    $('#btnMicNote').classList.remove('recording');
+    $('#listeningHint').textContent = '';
+  };
+}
+$('#btnMicNote').addEventListener('click', ()=>{
+  if(!speechRecognizer){
+    alert('El dictado por voz no está disponible en este navegador. Puedes escribir la nota directamente.');
+    return;
+  }
+  if(isListening){
+    userStoppedListening = true;
+    speechRecognizer.stop();
+    return;
+  }
+  try{
+    userStoppedListening = false;
+    isListening = true;
+    $('#btnMicNote').classList.add('recording');
+    $('#listeningHint').innerHTML = '<span class="dot"></span> Escuchando…';
+    speechRecognizer.start();
+  }catch(err){ isListening = false; $('#btnMicNote').classList.remove('recording'); }
 });
 $('#btnNewFile').addEventListener('click', ()=>{
   if(!confirm('¿Cargar un nuevo archivo? Se perderá el progreso actual no guardado en otra parte.')) return;
@@ -763,6 +1050,7 @@ function renderAll(){
   renderSamplePanel();
   renderStats();
   renderTable();
+  updateNotesBadge();
 }
 // ---------- Tamaño de muestra (QUA-FOR-040, 95% confianza, p=q=50%) ----------
 let marginError = 0.08;
@@ -1060,6 +1348,22 @@ $('#btnExportExcel').addEventListener('click', ()=>{
   ws['!cols'] = [{wch:12},{wch:16},{wch:24},{wch:26},{wch:20},{wch:26},{wch:16},{wch:16},{wch:20},{wch:14},{wch:18},{wch:18},{wch:14},{wch:20},{wch:20},{wch:14},{wch:20},{wch:16},{wch:30}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Auditoria CI');
+
+  // ---- Hoja adicional: notas de campo tomadas durante el recorrido ----
+  const notesForExport = notesForCurrentSite().slice().sort((a,b)=>a.ts-b.ts);
+  if(notesForExport.length){
+    const notesData = notesForExport.map(n=>({
+      'Data Center': n.sitio || 'General',
+      'Fecha y hora': new Date(n.ts).toLocaleString('es-CL'),
+      'Etiqueta': n.tag,
+      'Nota': n.text,
+      'Foto': n.photo ? 'Sí (ver PDF o la app)' : 'No'
+    }));
+    const wsNotes = XLSX.utils.json_to_sheet(notesData);
+    wsNotes['!cols'] = [{wch:14},{wch:20},{wch:20},{wch:70},{wch:18}];
+    XLSX.utils.book_append_sheet(wb, wsNotes, 'Notas de campo');
+  }
+
   XLSX.writeFile(wb, `auditoria_ci_${new Date().toISOString().slice(0,10)}.xlsx`);
 });
 $('#btnExportPdf').addEventListener('click', async ()=>{
@@ -1224,6 +1528,74 @@ $('#btnExportPdf').addEventListener('click', async ()=>{
         }
       }
     });
+
+    // ---- Notas de campo del auditor (bitácora tomada durante el recorrido) ----
+    const notesForPdf = notesForCurrentSite().slice().sort((a,b)=>a.ts-b.ts);
+    if(notesForPdf.length){
+      yCursor = doc.lastAutoTable.finalY + 10;
+      if(yCursor > 180){ doc.addPage(); yCursor = 15; }
+      doc.setFontSize(10);
+      doc.setTextColor(82,37,130);
+      doc.setFont(undefined, 'bold');
+      doc.text(`NOTAS DE CAMPO DEL AUDITOR (${notesForPdf.length})`, 14, yCursor);
+      doc.setFont(undefined, 'normal');
+      yCursor += 4;
+
+      doc.autoTable({
+        startY: yCursor,
+        head: [['Fecha y hora','Etiqueta','Nota','Foto']],
+        body: notesForPdf.map(n=>[new Date(n.ts).toLocaleString('es-CL'), n.tag, n.text, n.photo ? 'Sí ↓' : '—']),
+        styles: {fontSize:7.5, cellPadding:1.5, minCellHeight:9},
+        headStyles: {fillColor:[82,37,130], textColor:255, fontSize:8},
+        alternateRowStyles: {fillColor:[250,249,252]},
+        columnStyles: {0:{cellWidth:30}, 1:{cellWidth:34}, 3:{cellWidth:14}}
+      });
+
+      // ---- Galería de evidencia fotográfica: dos fotos por fila, con su nota como pie de foto ----
+      const notesWithPhoto = notesForPdf.filter(n => n.photo);
+      if(notesWithPhoto.length){
+        const loadDims = src => new Promise(resolve=>{
+          const img = new Image();
+          img.onload = ()=> resolve({w: img.width, h: img.height});
+          img.onerror = ()=> resolve({w:4, h:3});
+          img.src = src;
+        });
+
+        yCursor = doc.lastAutoTable.finalY + 10;
+        if(yCursor > 170){ doc.addPage(); yCursor = 15; }
+        doc.setFontSize(10);
+        doc.setTextColor(82,37,130);
+        doc.setFont(undefined, 'bold');
+        doc.text(`EVIDENCIA FOTOGRÁFICA (${notesWithPhoto.length})`, 14, yCursor);
+        doc.setFont(undefined, 'normal');
+        yCursor += 6;
+
+        const imgW = 85, colX = [14, 108];
+        for(let i=0; i<notesWithPhoto.length; i+=2){
+          const pair = [notesWithPhoto[i], notesWithPhoto[i+1]].filter(Boolean);
+          const dims = await Promise.all(pair.map(n => loadDims(n.photo)));
+          const heights = dims.map(d => imgW * (d.h / d.w));
+          const rowH = Math.min(Math.max(...heights), 90);
+
+          if(yCursor + rowH + 14 > 200){ doc.addPage(); yCursor = 15; }
+
+          pair.forEach((n, idx)=>{
+            const x = colX[idx];
+            const h = Math.min(heights[idx], rowH);
+            try{ doc.addImage(n.photo, 'JPEG', x, yCursor, imgW, h); }catch(err){ /* si falla la imagen, se sigue sin ella */ }
+            doc.setFontSize(7);
+            doc.setTextColor(107,100,121);
+            const caption = `${new Date(n.ts).toLocaleString('es-CL')} · ${n.tag}`;
+            doc.text(caption, x, yCursor + h + 4);
+            const noteLine = n.text.length > 70 ? n.text.slice(0,70) + '…' : n.text;
+            doc.setTextColor(33,26,43);
+            doc.text(noteLine, x, yCursor + h + 8, {maxWidth: imgW});
+          });
+
+          yCursor += rowH + 14;
+        }
+      }
+    }
 
     doc.save(`auditoria_ci_${currentSite}_${new Date().toISOString().slice(0,10)}.pdf`);
     btn.textContent = originalText;
