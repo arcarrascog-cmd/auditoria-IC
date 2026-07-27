@@ -160,6 +160,14 @@
   tbody tr:hover{background:#FBFAFD;}
   td.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;}
   .sys-val{color:var(--ink-soft);font-size:11px;display:block;margin-top:2px;}
+  .color-legend{
+    display:flex;gap:18px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-soft);
+    margin:0 0 10px;align-items:center;
+  }
+  .color-legend span{display:flex;align-items:center;gap:6px;}
+  .legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0;}
+  .legend-dot.legend-red{background:var(--red);}
+  .legend-dot.legend-green{background:var(--green-dark);}
   input.field-input{
     width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--line);font-size:12.5px;
     font-family:ui-monospace,Menlo,Consolas,monospace;
@@ -273,6 +281,7 @@
     .toolbar .progress-wrap{order:1;}
     .toolbar input[type=text]{width:100%;order:2;}
     #categoryFilter{order:3;width:100%;}
+    #locationFilter{order:3;width:100%;}
     .toolbar .actions{order:4;display:none;} /* se reemplaza por la barra fija de abajo */
 
     .status-tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
@@ -388,6 +397,56 @@
   }
   @media (max-width:720px){
     .notes-fab{bottom:84px;right:16px;}
+    .def-fab{bottom:84px;left:16px;}
+  }
+
+  /* ================= Definiciones (ventana de referencia rápida) ================= */
+  .def-fab{
+    position:fixed;left:22px;bottom:26px;z-index:70;
+    width:56px;height:56px;border-radius:50%;
+    background:#fff;color:var(--purple);font-size:22px;border:1.5px solid var(--purple);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 14px rgba(82,37,130,.18);padding:0;
+  }
+  .def-fab:hover{background:var(--purple);color:#fff;}
+  .def-overlay{
+    display:none;position:fixed;inset:0;z-index:85;
+    background:rgba(33,26,43,.5);align-items:center;justify-content:center;padding:20px;
+  }
+  .def-overlay.open{display:flex;}
+  .def-modal{
+    background:#fff;width:100%;max-width:640px;max-height:86vh;border-radius:16px;
+    padding:26px 28px;overflow-y:auto;box-shadow:0 10px 40px rgba(33,26,43,.25);position:relative;
+  }
+  .def-modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:2px;}
+  .def-modal h2{color:var(--purple-dark);margin:0;font-size:19px;}
+  .def-sub{color:var(--ink-soft);font-size:12.5px;margin:2px 0 18px;}
+  .def-modal h3{
+    color:var(--purple);font-size:13.5px;text-transform:uppercase;letter-spacing:.3px;
+    margin:22px 0 10px;padding-top:16px;border-top:1px solid var(--line);
+  }
+  .def-modal h3:first-of-type{border-top:none;padding-top:0;margin-top:0;}
+  .def-modal p{font-size:13.5px;line-height:1.65;color:var(--ink);margin:0 0 10px;}
+  .def-compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0 4px;}
+  .def-compare .dc-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 15px;}
+  .def-compare .dc-card b{display:block;color:var(--purple-dark);font-size:12px;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;}
+  .def-compare .dc-card p{font-size:12.5px;margin:0;line-height:1.55;}
+  .def-example{
+    background:var(--green-bg);border-radius:10px;padding:11px 14px;font-size:12.5px;
+    color:var(--purple-dark);margin-top:10px;
+  }
+  .def-field-list{display:flex;flex-direction:column;gap:7px;}
+  .def-field-list .df-item{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 13px;}
+  .def-field-list .df-item b{color:var(--purple-dark);font-size:12.5px;}
+  .def-field-list .df-item span{display:block;font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.5;}
+  #btnCloseDef{
+    background:none;border:none;color:var(--ink-soft);font-size:22px;line-height:1;padding:0 0 0 10px;
+    min-height:auto;flex-shrink:0;
+  }
+  #btnCloseDef:hover{color:var(--ink);}
+  @media (max-width:720px){
+    .def-compare{grid-template-columns:1fr;}
+    .def-modal{padding:20px;}
   }
 </style>
 </head>
@@ -508,6 +567,9 @@
       <select id="categoryFilter" style="padding:9px 12px;border-radius:8px;border:1px solid var(--line);font-size:13px;">
         <option value="__ALL__">Todas las categorías</option>
       </select>
+      <select id="locationFilter" style="padding:9px 12px;border-radius:8px;border:1px solid var(--line);font-size:13px;">
+        <option value="__ALL__">Todas las ubicaciones</option>
+      </select>
       <div class="actions">
         <span class="autosave"><span class="dot"></span>Guardado local automático (sin internet)</span>
         <button class="btn-ghost btn-sm" id="btnNewFile">Cargar otro archivo</button>
@@ -518,12 +580,17 @@
 
     <div class="status-tabs no-print" id="statusTabs"></div>
 
+    <div class="color-legend no-print">
+      <span><span class="legend-dot legend-red"></span> Rojo: no coincide con lo registrado en ServiceNow</span>
+      <span><span class="legend-dot legend-green"></span> Verde (✓): verificado y correcto</span>
+    </div>
+
     <table>
       <thead>
         <tr>
           <th style="width:15%">Activo</th>
           <th style="width:16%">TAG (verificar)</th>
-          <th style="width:16%">Serial Number (verificar)</th>
+          <th style="width:16%">Número de Serie (verificar)</th>
           <th style="width:10%">¿Ubicación OK?</th>
           <th style="width:9%">Estado</th>
           <th style="width:19%">Observaciones</th>
@@ -536,6 +603,56 @@
       <button class="btn-ghost" id="btnNewFileMobile">Nuevo archivo</button>
       <button class="btn-green" id="btnExportExcelMobile">Excel</button>
       <button class="btn-primary" id="btnExportPdfMobile">PDF</button>
+    </div>
+
+    <button class="def-fab no-print" id="btnOpenDef" title="Definiciones">📖</button>
+
+    <div class="def-overlay no-print" id="defOverlay">
+      <div class="def-modal">
+        <div class="def-modal-header">
+          <div>
+            <h2>Definiciones para la auditoría</h2>
+            <p class="def-sub">Referencia rápida — Procedimiento de Activos, apartado 6.4.1</p>
+          </div>
+          <button id="btnCloseDef" title="Cerrar">✕</button>
+        </div>
+
+        <h3>¿Qué es un Ítem de Configuración (IC)?</h3>
+        <p>Es cualquier componente de la infraestructura que hay que controlar porque, si falla o cambia sin registro, afecta el servicio a los clientes. No es solo el equipo físico — es ese equipo <b>más</b> toda la información que lo describe y lo relaciona con el resto: su ubicación, su historial, con qué otros componentes se conecta, quién es responsable de él.</p>
+
+        <h3>IC vs. Activo — la diferencia en simple</h3>
+        <div class="def-compare">
+          <div class="dc-card">
+            <b>Activo</b>
+            <p>La mirada financiera/contable: cuánto vale, cuándo se compró, cómo se deprecia, cuándo se da de baja. Le importa a Finanzas/Compras.</p>
+          </div>
+          <div class="dc-card">
+            <b>Ítem de Configuración</b>
+            <p>La misma cosa física, pero mirada desde el servicio: dónde está, cómo se relaciona con otros equipos, qué pasa si falla. Le importa a Operaciones/Gestión de Configuración.</p>
+          </div>
+        </div>
+        <div class="def-example">Todo IC es un activo, pero no todo activo es un IC. Una silla de oficina es un activo, pero no un IC (no afecta el servicio si se rompe). Un switch, un CRAC, un UPS o un servidor sí son IC, porque de ellos depende que el servicio siga funcionando.</div>
+
+        <h3>Campos del CMDB (procedimiento 6.4.1)</h3>
+        <div class="def-field-list">
+          <div class="df-item"><b>Ubicación</b><span>Dónde está físicamente instalado el IC (sala/rack dentro del DC).</span></div>
+          <div class="df-item"><b>Nombre IC</b><span>El nombre/identificador con que el elemento queda registrado en el CMDB.</span></div>
+          <div class="df-item"><b>Modelo</b><span>La denominación de modelo que le da el fabricante al equipo.</span></div>
+          <div class="df-item"><b>Serial</b><span>Número de serie único del fabricante — el identificador más confiable para cruzar entre sistemas.</span></div>
+          <div class="df-item"><b>Fecha de entrada</b><span>Fecha en que el activo ingresó/se instaló en operación.</span></div>
+          <div class="df-item"><b>Tipo</b><span>Clasificación del IC (switch, servidor, UPS, CRAC, PDU, etc.).</span></div>
+          <div class="df-item"><b>Fabricante</b><span>La marca del equipo (ej. Dell, Arista, Vertiv).</span></div>
+          <div class="df-item"><b>TAG</b><span>Número de etiqueta física pegada al activo — el que se busca y compara durante el recorrido en terreno.</span></div>
+          <div class="df-item"><b>Propietario</b><span>Persona o área responsable de ese activo dentro de la organización.</span></div>
+        </div>
+
+        <h3>Otros términos frecuentes</h3>
+        <div class="def-field-list">
+          <div class="df-item"><b>CMDB</b><span>Base de Datos de la Gestión de Configuración — el sistema (en este caso ServiceNow) donde queda registrada toda la información de los IC.</span></div>
+          <div class="df-item"><b>Muestra / margen de error</b><span>No se revisa el 100% de los activos, sino una cantidad calculada estadísticamente (QUA-FOR-040, 95% de confianza) que representa al universo completo con un margen de error definido.</span></div>
+          <div class="df-item"><b>TNC</b><span>No Conformidad — un hallazgo que no cumple lo esperado y que requiere un análisis de causa raíz y un plan de acción para corregirlo.</span></div>
+        </div>
+      </div>
     </div>
 
     <button class="notes-fab no-print" id="btnOpenNotes" title="Notas de campo">
@@ -610,6 +727,7 @@ let rows = [];
 let mapping = {};
 let currentSite = '__ALL__';
 let currentCategory = '__ALL__';
+let currentLocation = '__ALL__';
 let currentStatusFilter = '__ALL__';
 let searchTerm = '';
 let coverData = {}; // { QR01: {auditor, fecha, responsableDC, tipoActivos} }
@@ -685,7 +803,7 @@ function processUploadedData(){
     elementoConfig: guessColumn(rawHeaders, 'elementoConfig')
   };
   if(!mapping.activo || !mapping.tag || !mapping.serial){
-    alert('No pudimos detectar las columnas de Activo, TAG o Serial Number en este Excel. Revisa que tenga columnas como "Nombre de visualización", "Etiqueta de activo" y "Número de serie".');
+    alert('No pudimos detectar las columnas de Activo, TAG o Número de Serie en este Excel. Revisa que tenga columnas como "Nombre de visualización", "Etiqueta de activo" y "Número de serie".');
     return;
   }
 
@@ -864,6 +982,14 @@ function renderNotesList(){
   }
   updateNotesBadge();
 }
+
+// ---------- Definiciones (ventana de referencia rápida) ----------
+$('#btnOpenDef').addEventListener('click', ()=> $('#defOverlay').classList.add('open'));
+$('#btnCloseDef').addEventListener('click', ()=> $('#defOverlay').classList.remove('open'));
+$('#defOverlay').addEventListener('click', e=>{
+  if(e.target.id === 'defOverlay') $('#defOverlay').classList.remove('open');
+});
+
 $('#btnOpenNotes').addEventListener('click', ()=>{
   updateNoteTagOptions();
   renderNotesList();
@@ -1016,6 +1142,7 @@ $('#btnNewFile').addEventListener('click', ()=>{
 function filteredRows(){
   return rows.filter(r=>{
     if(currentCategory!=='__ALL__' && (r.categoria||'Sin categoría')!==currentCategory) return false;
+    if(currentLocation!=='__ALL__' && (r.sitioDetalle||'Sin ubicación')!==currentLocation) return false;
     if(currentStatusFilter!=='__ALL__' && r.estado!==currentStatusFilter) return false;
     if(searchTerm){
       const t = searchTerm.toLowerCase();
@@ -1045,6 +1172,7 @@ function renderStatusTabs(){
 }
 function renderAll(){
   renderCategoryFilter();
+  renderLocationFilter();
   renderStatusTabs();
   renderCoverSummaryBar();
   renderSamplePanel();
@@ -1111,6 +1239,24 @@ function renderCategoryFilter(){
   const prev = currentCategory;
   sel.innerHTML = `<option value="__ALL__">Todas las categorías</option>` + cats.map(c=>`<option value="${c}" ${c===prev?'selected':''}>${c}</option>`).join('');
 }
+function renderLocationFilter(){
+  const sel = $('#locationFilter');
+  const counts = {};
+  rows.forEach(r=>{
+    const loc = r.sitioDetalle || 'Sin ubicación';
+    counts[loc] = (counts[loc]||0) + 1;
+  });
+  const locs = Object.keys(counts);
+  if(locs.length<=1 && locs[0]==='Sin ubicación'){
+    sel.style.display='none';
+    return;
+  }
+  sel.style.display='inline-block';
+  const prev = currentLocation;
+  const sorted = locs.sort((a,b)=> a.localeCompare(b, 'es'));
+  sel.innerHTML = `<option value="__ALL__">Todas las ubicaciones</option>` +
+    sorted.map(l=>`<option value="${l}" ${l===prev?'selected':''}>${escapeHtml(l)} (${counts[l]})</option>`).join('');
+}
 function renderStats(){
   const scope = rows;
   const c = st => scope.filter(r=>r.estado===st).length;
@@ -1162,7 +1308,7 @@ function rowsHtml(data){
         </div>
         <span class="sys-val">Sistema: ${escapeHtml(r.tagSistema)||'—'}</span>
       </td>
-      <td data-label="Serial Number (verificar)">
+      <td data-label="Número de Serie (verificar)">
         <div class="verif-row">
           <input class="field-input serial-input ${mismatch(r.serialFisico,r.serialSistema)?'mismatch':''}" data-id="${r.id}" data-field="serialFisico" value="${escapeHtml(r.serialFisico)}" placeholder="${escapeHtml(r.serialSistema)}">
           <div class="verif-toggle" data-id="${r.id}" data-field="serialVerificado">
@@ -1309,6 +1455,7 @@ function escapeHtml(s){
 
 $('#searchBox').addEventListener('input', e=>{ searchTerm = e.target.value; renderTable(); });
 $('#categoryFilter').addEventListener('change', e=>{ currentCategory = e.target.value; renderTable(); });
+$('#locationFilter').addEventListener('change', e=>{ currentLocation = e.target.value; renderTable(); });
 
 // ---------- Export: solo lo revisado hasta ahora ----------
 function reviewedRows(){
