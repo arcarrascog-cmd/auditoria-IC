@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#522582">
+<title>Verificación de Red</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --purple:#522582;
+    --purple-dark:#3a1a5e;
+    --green:#33D592;
+    --green-dark:#22a873;
+    --bg:#F6F5F9;
+    --panel:#FFFFFF;
+    --ink:#211A2B;
+    --ink-soft:#6B6479;
+    --line:#E4E1EC;
+    --red:#D64545;
+    --amber:#E8A33D;
+    --amber-bg:#FCF3E3;
+    --red-bg:#FBEAEA;
+    --green-bg:#E9FAF3;
+    --gray-bg:#F0EFF4;
+    font-size:15px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{max-width:1000px;margin:0 auto;padding:18px 16px 100px;}
+  .top-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+  .top-header h1{font-size:16px;margin:0;color:var(--purple-dark);}
+  .top-header .sub{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .card{background:var(--panel);border-radius:14px;padding:20px;box-shadow:0 1px 3px rgba(33,26,43,.08);}
+  label.field-label{display:block;font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px;margin:14px 0 6px;}
+  label.field-label:first-child{margin-top:0;}
+  input[type=text], input[type=date], #uploadScreen select{
+    width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--line);font-size:14px;font-family:inherit;background:#fff;
+  }
+  .upload-zone{
+    display:block;border:2px dashed var(--line);border-radius:14px;padding:22px;text-align:center;
+    cursor:pointer;transition:border-color .15s,background .15s;margin-top:6px;
+  }
+  .upload-zone:hover, .upload-zone.dragover{border-color:var(--purple);background:var(--green-bg);}
+  .upload-zone h3{font-size:14px;margin:8px 0 4px;color:var(--purple-dark);}
+  .upload-zone p{font-size:12px;color:var(--ink-soft);margin:0;}
+  .upload-zone.filled{border-color:var(--green-dark);background:var(--green-bg);}
+  input[type=file]{display:none;}
+  button{cursor:pointer;border:none;border-radius:9px;padding:11px 16px;font-size:14px;font-weight:700;font-family:inherit;min-height:42px;}
+  .btn-primary{background:var(--purple);color:#fff;}
+  .btn-primary:hover{background:var(--purple-dark);}
+  .btn-primary:disabled{background:#C9C2D6;cursor:not-allowed;}
+  .btn-green{background:var(--green);color:#0b3d2b;}
+  .btn-green:hover{background:var(--green-dark);color:#fff;}
+  .btn-ghost{background:transparent;color:var(--purple);border:1px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--purple);}
+  .btn-sm{padding:6px 11px;font-size:12px;border-radius:7px;min-height:32px;}
+  #uploadScreen{display:block;}
+  #auditScreen{display:none;}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center;}
+  .toolbar input[type=text]{flex:1;min-width:180px;}
+  .toolbar select{padding:9px 12px;border-radius:8px;border:1px solid var(--line);font-size:13px;background:#fff;}
+  .cover-summary{
+    display:flex;flex-wrap:wrap;gap:14px;align-items:center;background:var(--panel);border-radius:12px;
+    padding:12px 16px;margin-bottom:14px;font-size:12.5px;color:var(--ink-soft);box-shadow:0 1px 3px rgba(33,26,43,.06);
+  }
+  .cover-summary b{color:var(--ink);}
+  .cover-summary .btn-ghost{margin-left:auto;}
+  .stats-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .stat{flex:1;min-width:100px;background:var(--panel);border-radius:12px;padding:12px 14px;box-shadow:0 1px 3px rgba(33,26,43,.06);}
+  .stat .n{font-size:22px;font-weight:800;color:var(--ink);}
+  .stat .lbl{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px;margin-top:2px;}
+  .stat.ok .n{color:var(--green-dark);}
+  .stat.bad .n{color:var(--red);}
+  .stat.notfound .n{color:#966317;}
+  .sample-panel{
+    display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:var(--panel);border-radius:12px;
+    padding:14px 16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(33,26,43,.06);
+  }
+  .sample-value{font-size:22px;font-weight:800;color:var(--purple-dark);line-height:1.1;}
+  .sample-sub{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .sample-right{display:flex;flex-direction:column;gap:4px;}
+  .sample-right label{font-size:10px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.4px;}
+  .sample-right select{padding:7px 10px;border-radius:7px;border:1px solid var(--line);font-size:13px;}
+  .color-legend{display:flex;gap:18px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;align-items:center;}
+  .color-legend span{display:flex;align-items:center;gap:6px;}
+  .legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0;}
+  .legend-dot.legend-red{background:var(--red);}
+  .legend-dot.legend-green{background:var(--green-dark);}
+  .status-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  .status-tab{
+    padding:8px 14px;border-radius:20px;font-size:12.5px;font-weight:700;background:var(--panel);color:var(--ink-soft);
+    border:1px solid var(--line);cursor:pointer;
+  }
+  .status-tab.active{background:var(--purple);color:#fff;border-color:var(--purple);}
+  .status-tab.active.st-ok{background:var(--green-dark);border-color:var(--green-dark);}
+  .status-tab.active.st-bad{background:var(--red);border-color:var(--red);}
+  .status-tab.active.st-notfound{background:#966317;border-color:#966317;}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(33,26,43,.06);}
+  thead th{background:var(--purple);color:#fff;font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;padding:10px 12px;text-align:left;}
+  tbody td{padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top;}
+  tbody tr:last-child td{border-bottom:none;}
+  .sys-val{color:var(--ink-soft);font-size:11px;display:block;margin-top:2px;}
+  input.field-input{font-family:inherit;width:100%;padding:7px 9px;border-radius:6px;border:1px solid var(--line);font-size:12.5px;}
+  input.field-input.mismatch{border-color:var(--red);background:var(--red-bg);}
+  input.field-input.match{border-color:var(--green-dark);background:var(--green-bg);}
+  .verif-row{display:flex;align-items:center;gap:5px;}
+  .verif-row .field-input{flex:1;min-width:0;}
+  .verif-toggle{display:flex;gap:3px;flex-shrink:0;}
+  .verif-btn{
+    width:23px;height:23px;padding:0;border-radius:6px;border:1px solid var(--line);
+    background:#fff;color:var(--ink-soft);font-size:12px;line-height:1;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:700;min-height:auto;
+  }
+  .verif-btn:hover{border-color:#C9C2DA;}
+  .verif-btn.ok.active{background:var(--green);border-color:var(--green-dark);color:#fff;}
+  .verif-btn.no.active{background:var(--red);border-color:#a83232;color:#fff;}
+  select.estado-select{width:100%;padding:7px 9px;border-radius:6px;border:1px solid var(--line);font-size:12.5px;background:#fff;}
+  select.ubicacion-select{width:100%;padding:7px 9px;border-radius:6px;border:1px solid var(--line);font-size:12.5px;background:#fff;}
+  select.ubicacion-select.ubic-no{border-color:var(--red);background:var(--red-bg);color:var(--red);}
+  select.ubicacion-select.ubic-ok{border-color:var(--green-dark);background:var(--green-bg);color:var(--green-dark);}
+  input.obs-input{font-family:inherit;width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--line);font-size:12.5px;}
+  .actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+  @media (max-width:720px){
+    table, thead, tbody, tr{display:block;}
+    thead{display:none;}
+    tbody tr{margin-bottom:12px;border:1px solid var(--line);border-radius:10px;padding:10px;display:block;}
+    tbody td{border:none;padding:6px 4px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+    tbody td::before{content:attr(data-label);font-weight:700;color:var(--ink-soft);font-size:11px;flex-shrink:0;padding-top:2px;}
+    .stats-row{gap:8px;}
+    .stat{min-width:44%;}
+    .notes-fab{bottom:84px;right:16px;}
+    .def-fab{bottom:84px;left:16px;}
+  }
+
+  /* ================= Notas de campo (bitácora del auditor) ================= */
+  .notes-fab{
+    position:fixed;right:22px;bottom:26px;z-index:70;
+    width:56px;height:56px;border-radius:50%;
+    background:var(--purple);color:#fff;font-size:22px;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 14px rgba(82,37,130,.35);border:none;padding:0;
+  }
+  .notes-fab:hover{background:var(--purple-dark);}
+  .notes-fab-badge{
+    position:absolute;top:-4px;right:-4px;background:var(--green);color:var(--purple-dark);
+    font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;padding:0 5px;
+    border:2px solid #fff;
+  }
+  .notes-overlay{
+    display:none;position:fixed;inset:0;z-index:80;
+    background:rgba(33,26,43,.45);
+    align-items:flex-end;justify-content:center;
+  }
+  .notes-overlay.open{display:flex;}
+  .notes-drawer{
+    background:#fff;width:100%;max-width:560px;max-height:82vh;
+    border-radius:18px 18px 0 0;padding:18px 20px calc(18px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;gap:12px;overflow:hidden;
+    box-shadow:0 -6px 24px rgba(33,26,43,.18);
+  }
+  .notes-drawer-header{display:flex;align-items:center;justify-content:space-between;}
+  .notes-drawer-header h3{margin:0;color:var(--purple-dark);font-size:16px;}
+  .notes-input-row{display:flex;gap:8px;align-items:center;}
+  .notes-input-row select{
+    flex:1;padding:9px 10px;border-radius:8px;border:1px solid var(--line);font-size:13px;background:#fff;
+  }
+  #btnMicNote, #btnPhotoNote{
+    width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid var(--line);
+    color:var(--purple);font-size:16px;padding:0;flex-shrink:0;
+  }
+  #btnMicNote.recording{background:var(--red);border-color:var(--red);color:#fff;animation:pulseMic 1s infinite;}
+  @keyframes pulseMic{0%{box-shadow:0 0 0 0 rgba(214,69,69,.5);}70%{box-shadow:0 0 0 10px rgba(214,69,69,0);}100%{box-shadow:0 0 0 0 rgba(214,69,69,0);}}
+  .listening-hint{
+    font-size:11.5px;color:var(--purple-dark);font-style:italic;min-height:16px;
+    display:flex;align-items:center;gap:6px;
+  }
+  .listening-hint .dot{width:6px;height:6px;border-radius:50%;background:var(--red);animation:pulseMic 1s infinite;}
+  .photo-preview{position:relative;display:inline-block;}
+  .photo-preview img{max-width:120px;max-height:90px;border-radius:8px;border:1px solid var(--line);display:block;}
+  .photo-preview .photo-remove{
+    position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;
+    background:var(--red);color:#fff;border:2px solid #fff;font-size:12px;font-weight:800;
+    padding:0;min-height:auto;display:flex;align-items:center;justify-content:center;
+  }
+  .note-photo{max-width:100%;border-radius:8px;margin-top:6px;display:block;cursor:zoom-in;}
+  #noteText{
+    width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);font-family:inherit;
+    font-size:13.5px;resize:vertical;min-height:64px;
+  }
+  .notes-list{overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:2px;}
+  .notes-empty{font-size:12.5px;color:var(--ink-soft);text-align:center;padding:16px 0;}
+  .note-item{
+    background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;position:relative;
+  }
+  .note-meta{display:flex;justify-content:space-between;gap:8px;margin-bottom:4px;}
+  .note-tag{
+    font-size:10.5px;font-weight:800;color:var(--purple-dark);background:var(--green-bg);
+    padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.3px;
+  }
+  .note-time{font-size:11px;color:var(--ink-soft);}
+  .note-text{font-size:13px;color:var(--ink);white-space:pre-wrap;word-break:break-word;}
+  .note-del{
+    margin-top:6px;background:none;border:none;color:var(--red);font-size:11.5px;font-weight:700;
+    padding:0;min-height:auto;text-decoration:underline;
+  }
+
+  /* ================= Definiciones (ventana de referencia rápida) ================= */
+  .def-fab{
+    position:fixed;left:22px;bottom:26px;z-index:70;
+    width:56px;height:56px;border-radius:50%;
+    background:#fff;color:var(--purple);font-size:22px;border:1.5px solid var(--purple);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 14px rgba(82,37,130,.18);padding:0;
+  }
+  .def-fab:hover{background:var(--purple);color:#fff;}
+  .def-overlay{
+    display:none;position:fixed;inset:0;z-index:85;
+    background:rgba(33,26,43,.5);align-items:center;justify-content:center;padding:20px;
+  }
+  .def-overlay.open{display:flex;}
+  .def-modal{
+    background:#fff;width:100%;max-width:640px;max-height:86vh;border-radius:16px;
+    padding:26px 28px;overflow-y:auto;box-shadow:0 10px 40px rgba(33,26,43,.25);position:relative;
+  }
+  .def-modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:2px;}
+  .def-modal h2{color:var(--purple-dark);margin:0;font-size:19px;}
+  .def-sub{color:var(--ink-soft);font-size:12.5px;margin:2px 0 18px;}
+  .def-modal h3{
+    color:var(--purple);font-size:13.5px;text-transform:uppercase;letter-spacing:.3px;
+    margin:22px 0 10px;padding-top:16px;border-top:1px solid var(--line);
+  }
+  .def-modal h3:first-of-type{border-top:none;padding-top:0;margin-top:0;}
+  .def-modal p{font-size:13.5px;line-height:1.65;color:var(--ink);margin:0 0 10px;}
+  .def-compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0 4px;}
+  .def-compare .dc-card{background:var(--gray-bg);border:1px solid var(--line);border-radius:10px;padding:13px 15px;}
+  .def-compare .dc-card b{display:block;color:var(--purple-dark);font-size:12px;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;}
+  .def-compare .dc-card p{font-size:12.5px;margin:0;line-height:1.55;}
+  .def-example{
+    background:var(--green-bg);border-radius:10px;padding:11px 14px;font-size:12.5px;
+    color:var(--purple-dark);margin-top:10px;
+  }
+  .def-field-list{display:flex;flex-direction:column;gap:7px;}
+  .def-field-list .df-item{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 13px;}
+  .def-field-list .df-item b{color:var(--purple-dark);font-size:12.5px;}
+  .def-field-list .df-item span{display:block;font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.5;}
+  #btnCloseDef{
+    background:none;border:none;color:var(--ink-soft);font-size:22px;line-height:1;padding:0 0 0 10px;
+    min-height:auto;flex-shrink:0;
+  }
+  #btnCloseDef:hover{color:var(--ink);}
+  @media (max-width:720px){
+    .def-compare{grid-template-columns:1fr;}
+    .def-modal{padding:20px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top-header">
+    <div>
+      <h1>Verificación de Equipos de Red</h1>
+      <div class="sub">RED-FOR-012 — valida Ubicación, TAG y Número de Serie. Herramienta aparte, no reemplaza la auditoría de IC en ServiceNow.</div>
+    </div>
+  </div>
+
+  <div id="uploadScreen">
+    <div class="card">
+      <label class="field-label">Auditor</label>
+      <select id="inAuditor">
+        <option value="">— Selecciona —</option>
+        <option value="Alejandro Carrasco">Alejandro Carrasco</option>
+        <option value="Paula Polanco">Paula Polanco</option>
+      </select>
+
+      <label class="field-label">Fecha</label>
+      <input type="date" id="inFecha">
+
+      <label class="field-label">Sitio</label>
+      <input type="text" id="inSitio" value="QR01" style="text-transform:uppercase;">
+
+      <label class="field-label">Responsable de Redes</label>
+      <input type="text" id="inResponsableRed" placeholder="Contraparte del sitio para Redes">
+
+      <label class="field-label">RED-FOR-012 — Inventario de Equipos de Red</label>
+      <label class="upload-zone" id="dropRed">
+        <h3 id="redZoneTitle">📡 Cargar RED-FOR-012 (.xlsx)</h3>
+        <p>Se valida Ubicación (LOCATION), TAG (TAGNAME) y Número de Serie</p>
+        <input type="file" id="redInput" accept=".xlsx,.xls">
+      </label>
+
+      <button class="btn-primary" id="btnProcess" style="margin-top:18px;width:100%;" disabled>Cargar y comenzar verificación</button>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;">Se necesita el archivo RED-FOR-012 para continuar.</p>
+    </div>
+  </div>
+
+  <div id="auditScreen">
+    <div class="cover-summary" id="coverSummary"></div>
+
+    <div class="sample-panel">
+      <div>
+        <div class="sample-value" id="sampleValue">0</div>
+        <div class="sample-sub">activos a revisar (muestra QUA-FOR-040, 95% confianza)</div>
+      </div>
+      <div class="sample-right">
+        <label>Margen de error</label>
+        <select id="marginSelect">
+          <option value="0.05">5%</option>
+          <option value="0.08" selected>8%</option>
+          <option value="0.10">10%</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="stats-row" id="statsRow"></div>
+
+    <div class="toolbar">
+      <input type="text" id="searchBox" placeholder="Buscar por activo, TAG o serial…">
+      <button class="btn-ghost btn-sm" id="btnNewFile">Cargar otro archivo</button>
+      <button class="btn-green btn-sm" id="btnExportExcel">Exportar Excel</button>
+      <button class="btn-primary btn-sm" id="btnExportPdf">Exportar PDF</button>
+    </div>
+
+    <div class="status-tabs" id="statusTabs"></div>
+
+    <div class="color-legend">
+      <span><span class="legend-dot legend-red"></span> Rojo: no coincide con RED-FOR-012</span>
+      <span><span class="legend-dot legend-green"></span> Verde: verificado y correcto</span>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:22%">Activo</th>
+          <th style="width:16%">TAG (verificar)</th>
+          <th style="width:16%">Número de Serie (verificar)</th>
+          <th style="width:12%">¿Ubicación OK?</th>
+          <th style="width:10%">Estado</th>
+          <th style="width:24%">Observaciones</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+
+    <div class="actions">
+      <button class="btn-ghost" id="btnNewFile2">Cargar otro archivo</button>
+    </div>
+
+    <button class="def-fab no-print" id="btnOpenDef" title="Definiciones">📖</button>
+
+    <div class="def-overlay no-print" id="defOverlay">
+      <div class="def-modal">
+        <div class="def-modal-header">
+          <div>
+            <h2>Definiciones para la auditoría</h2>
+            <p class="def-sub">Referencia rápida — Procedimiento de Activos, apartado 6.4.1</p>
+          </div>
+          <button id="btnCloseDef" title="Cerrar">✕</button>
+        </div>
+
+        <h3>¿Qué es un Ítem de Configuración (IC)?</h3>
+        <p>Es cualquier componente de la infraestructura que hay que controlar porque, si falla o cambia sin registro, afecta el servicio a los clientes. No es solo el equipo físico — es ese equipo <b>más</b> toda la información que lo describe y lo relaciona con el resto: su ubicación, su historial, con qué otros componentes se conecta, quién es responsable de él.</p>
+
+        <h3>IC vs. Activo — la diferencia en simple</h3>
+        <div class="def-compare">
+          <div class="dc-card">
+            <b>Activo</b>
+            <p>La mirada financiera/contable: cuánto vale, cuándo se compró, cómo se deprecia, cuándo se da de baja. Le importa a Finanzas/Compras.</p>
+          </div>
+          <div class="dc-card">
+            <b>Ítem de Configuración</b>
+            <p>La misma cosa física, pero mirada desde el servicio: dónde está, cómo se relaciona con otros equipos, qué pasa si falla. Le importa a Operaciones/Gestión de Configuración.</p>
+          </div>
+        </div>
+        <div class="def-example">Todo IC es un activo, pero no todo activo es un IC. Una silla de oficina es un activo, pero no un IC (no afecta el servicio si se rompe). Un switch, un CRAC, un UPS o un servidor sí son IC, porque de ellos depende que el servicio siga funcionando.</div>
+
+        <h3>Campos del CMDB (procedimiento 6.4.1)</h3>
+        <div class="def-field-list">
+          <div class="df-item"><b>Ubicación</b><span>Dónde está físicamente instalado el IC (sala/rack dentro del DC).</span></div>
+          <div class="df-item"><b>Nombre IC</b><span>El nombre/identificador con que el elemento queda registrado en el CMDB.</span></div>
+          <div class="df-item"><b>Modelo</b><span>La denominación de modelo que le da el fabricante al equipo.</span></div>
+          <div class="df-item"><b>Serial</b><span>Número de serie único del fabricante — el identificador más confiable para cruzar entre sistemas.</span></div>
+          <div class="df-item"><b>Fecha de entrada</b><span>Fecha en que el activo ingresó/se instaló en operación.</span></div>
+          <div class="df-item"><b>Tipo</b><span>Clasificación del IC (switch, servidor, UPS, CRAC, PDU, etc.).</span></div>
+          <div class="df-item"><b>Fabricante</b><span>La marca del equipo (ej. Dell, Arista, Vertiv).</span></div>
+          <div class="df-item"><b>TAG</b><span>Número de etiqueta física pegada al activo — el que se busca y compara durante el recorrido en terreno.</span></div>
+          <div class="df-item"><b>Propietario</b><span>Persona o área responsable de ese activo dentro de la organización.</span></div>
+        </div>
+
+        <h3>Otros términos frecuentes</h3>
+        <div class="def-field-list">
+          <div class="df-item"><b>CMDB</b><span>Base de Datos de la Gestión de Configuración — el sistema (en este caso ServiceNow) donde queda registrada toda la información de los IC.</span></div>
+          <div class="df-item"><b>Muestra / margen de error</b><span>No se revisa el 100% de los activos, sino una cantidad calculada estadísticamente (QUA-FOR-040, 95% de confianza) que representa al universo completo con un margen de error definido.</span></div>
+          <div class="df-item"><b>TNC</b><span>No Conformidad — un hallazgo que no cumple lo esperado y que requiere un análisis de causa raíz y un plan de acción para corregirlo.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="notes-fab no-print" id="btnOpenNotes" title="Notas de campo">
+      🗒️<span class="notes-fab-badge" id="notesBadge" style="display:none;">0</span>
+    </button>
+
+    <div class="notes-overlay no-print" id="notesOverlay">
+      <div class="notes-drawer">
+        <div class="notes-drawer-header">
+          <h3>Notas de campo</h3>
+          <button class="btn-ghost btn-sm" id="btnCloseNotes">Cerrar</button>
+        </div>
+        <div class="notes-input-row">
+          <select id="noteTag"></select>
+          <button class="btn-ghost" id="btnMicNote" title="Dictar por voz">🎤</button>
+          <button class="btn-ghost" id="btnPhotoNote" title="Adjuntar foto">📷</button>
+          <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">
+        </div>
+        <div class="listening-hint" id="listeningHint"></div>
+        <div id="photoPreviewWrap"></div>
+        <textarea id="noteText" placeholder="Escribe o dicta una nota rápida (hallazgo, pendiente, contexto de la visita)…" rows="3"></textarea>
+        <button class="btn-primary btn-sm" id="btnSaveNote">Guardar nota</button>
+        <div class="notes-list" id="notesList"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const STORAGE_KEY = 'red-audit-dataset';
+const STATUS_LABEL = {pendiente:'Pendiente', conforme:'Conforme', no_conforme:'No conforme', no_encontrado:'No encontrado'};
+
+let rows = [];
+let coverInfo = {};
+let fieldNotes = []; // {id, ts, tag, text, photo} — bitácora de notas tomadas durante la verificación
+let currentStatusFilter = '__ALL__';
+let searchTerm = '';
+let marginError = 0.08;
+
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function normalizeKey(s){
+  return String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+function sheetToObjectsWithAnchor(sheet, anchorLower){
+  const matrix = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
+  let hIdx = -1;
+  for(let i=0;i<matrix.length;i++){
+    if(matrix[i].some(c => normalizeKey(c)===anchorLower)){ hIdx = i; break; }
+  }
+  if(hIdx===-1) return [];
+  const headers = matrix[hIdx].map(h=>String(h||'').trim());
+  const out = [];
+  for(let r=hIdx+1;r<matrix.length;r++){
+    const rowArr = matrix[r] || [];
+    if(rowArr.every(c=>String(c).trim()==='')) continue;
+    const obj = {};
+    headers.forEach((h,ci)=>{ if(h) obj[h] = rowArr[ci]!==undefined ? rowArr[ci] : ''; });
+    out.push(obj);
+  }
+  return out;
+}
+function readWorkbook(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      try{ resolve(XLSX.read(e.target.result, {type:'binary'})); }
+      catch(err){ reject(err); }
+    };
+    reader.onerror = reject;
+    reader.readAsBinaryString(file);
+  });
+}
+function calcSampleSize(N, e){
+  const z = 1.96, p = 0.5, q = 0.5;
+  if(N<=0) return 0;
+  return Math.round(N / (1 + ((e*e)*(N-1)) / (z*z*p*q)));
+}
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({rows, coverInfo, fieldNotes, savedAt: Date.now()})); }
+  catch(err){ console.error('No se pudo guardar localmente', err); }
+}
+
+// ---------- Carga de archivo ----------
+let pendingFile = null;
+const dropRed = $('#dropRed');
+const redInput = $('#redInput');
+
+['dragover','dragenter'].forEach(ev=>dropRed.addEventListener(ev,e=>{e.preventDefault();dropRed.classList.add('dragover');}));
+['dragleave','drop'].forEach(ev=>dropRed.addEventListener(ev,e=>{e.preventDefault();dropRed.classList.remove('dragover');}));
+dropRed.addEventListener('drop', e=>{ const f=e.dataTransfer.files[0]; if(f) setFile(f); });
+redInput.addEventListener('change', e=>{ if(e.target.files[0]) setFile(e.target.files[0]); });
+
+function setFile(file){
+  pendingFile = file;
+  $('#redZoneTitle').textContent = '✓ ' + file.name;
+  dropRed.classList.add('filled');
+  $('#btnProcess').disabled = false;
+}
+
+$('#btnProcess').addEventListener('click', async ()=>{
+  const btn = $('#btnProcess');
+  btn.disabled = true;
+  btn.textContent = 'Procesando…';
+  try{ await processUpload(); }
+  catch(err){
+    console.error(err);
+    alert('No se pudo procesar el archivo: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = 'Cargar y comenzar verificación';
+  }
+});
+
+async function processUpload(){
+  const sitio = ($('#inSitio').value || 'QR01').trim().toUpperCase();
+  const merged = [];
+
+  const wbRed = await readWorkbook(pendingFile);
+  const sheetRed = wbRed.Sheets['Devices'] || wbRed.Sheets[wbRed.SheetNames.find(n=>/device/i.test(n)) || wbRed.SheetNames[0]];
+  const objsRed = sheetToObjectsWithAnchor(sheetRed, 'serial number');
+  objsRed.forEach((o,i)=>{
+    const serial = String(o['SERIAL NUMBER']||'').trim();
+    const tag = String(o['TAGNAME']||'').trim();
+    if(!serial && !tag) return;
+    merged.push({
+      id: 'red_'+i,
+      activo: String(o['HOSTNAME'] || o['DESCRIPTION'] || o['MODEL'] || 'Equipo de red'),
+      categoria: 'Red' + (o['VENDOR'] ? (' - ' + o['VENDOR']) : ''),
+      modelo: String(o['MODEL']||''),
+      tagSistema: tag,
+      serialSistema: serial,
+      ubicacion: String(o['LOCATION']||''),
+      estadoOriginal: String(o['STATUS']||''),
+      tagFisico: '', serialFisico: '',
+      tagVerificado: '', serialVerificado: '',
+      ubicacionCorrecta: '',
+      estado: 'pendiente',
+      observaciones: ''
+    });
+  });
+
+  if(!merged.length){
+    alert('No se encontraron equipos. Revisa que RED-FOR-012 tenga datos en la hoja "Devices".');
+    return;
+  }
+
+  rows = merged;
+  coverInfo = {
+    auditor: $('#inAuditor').value || '',
+    fecha: $('#inFecha').value || '',
+    sitio,
+    responsableRed: $('#inResponsableRed').value || ''
+  };
+
+  saveState();
+  $('#uploadScreen').style.display = 'none';
+  $('#auditScreen').style.display = 'block';
+  renderAll();
+}
+
+// ---------- Reanudar / nuevo archivo ----------
+(function checkResume(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    if(!data.rows || !data.rows.length) return;
+    if(!confirm('Hay una verificación de Red guardada de una sesión anterior. ¿Continuar donde quedaste?')) {
+      localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+    rows = data.rows;
+    coverInfo = data.coverInfo || {};
+    fieldNotes = data.fieldNotes || [];
+    $('#uploadScreen').style.display = 'none';
+    $('#auditScreen').style.display = 'block';
+    renderAll();
+  }catch(err){ console.error(err); }
+})();
+
+function resetToUpload(){
+  if(!confirm('¿Cargar otro archivo? Se perderá el progreso actual no guardado en otra parte.')) return;
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(err){}
+  rows = []; coverInfo = {}; fieldNotes = [];
+  pendingFile = null;
+  redInput.value='';
+  $('#redZoneTitle').textContent = '📡 Cargar RED-FOR-012 (.xlsx)';
+  dropRed.classList.remove('filled');
+  $('#btnProcess').disabled = true;
+  $('#btnProcess').textContent = 'Cargar y comenzar verificación';
+  $('#auditScreen').style.display = 'none';
+  $('#uploadScreen').style.display = 'block';
+}
+$('#btnNewFile').addEventListener('click', resetToUpload);
+$('#btnNewFile2').addEventListener('click', resetToUpload);
+
+// ---------- Filtros ----------
+$('#searchBox').addEventListener('input', e=>{ searchTerm = e.target.value.trim(); renderTable(); });
+$('#marginSelect').addEventListener('change', e=>{ marginError = parseFloat(e.target.value); renderSamplePanel(); });
+
+function filteredRows(){
+  return rows.filter(r=>{
+    if(currentStatusFilter!=='__ALL__' && r.estado!==currentStatusFilter) return false;
+    if(searchTerm){
+      const t = searchTerm.toLowerCase();
+      return r.activo.toLowerCase().includes(t) || r.tagSistema.toLowerCase().includes(t) || r.serialSistema.toLowerCase().includes(t);
+    }
+    return true;
+  });
+}
+
+// ---------- Render ----------
+function renderAll(){
+  renderCoverSummary();
+  renderSamplePanel();
+  renderStats();
+  renderStatusTabs();
+  renderTable();
+  updateNotesBadge();
+}
+function renderCoverSummary(){
+  $('#coverSummary').innerHTML = `
+    <span>Auditor: <b>${escapeHtml(coverInfo.auditor||'—')}</b></span>
+    <span>Fecha: <b>${escapeHtml(coverInfo.fecha||'—')}</b></span>
+    <span>Sitio: <b>${escapeHtml(coverInfo.sitio||'—')}</b></span>
+    <span>Resp. Redes: <b>${escapeHtml(coverInfo.responsableRed||'—')}</b></span>
+    <span>Total activos: <b>${rows.length}</b></span>
+  `;
+}
+function renderSamplePanel(){
+  const n = calcSampleSize(rows.length, marginError);
+  $('#sampleValue').textContent = n;
+}
+function renderStats(){
+  const total = rows.length;
+  const conforme = rows.filter(r=>r.estado==='conforme').length;
+  const noConforme = rows.filter(r=>r.estado==='no_conforme').length;
+  const noEncontrado = rows.filter(r=>r.estado==='no_encontrado').length;
+  const pendiente = rows.filter(r=>r.estado==='pendiente').length;
+  $('#statsRow').innerHTML = `
+    <div class="stat"><div class="n">${total}</div><div class="lbl">Total</div></div>
+    <div class="stat ok"><div class="n">${conforme}</div><div class="lbl">Conforme</div></div>
+    <div class="stat bad"><div class="n">${noConforme}</div><div class="lbl">No conforme</div></div>
+    <div class="stat notfound"><div class="n">${noEncontrado}</div><div class="lbl">No encontrado</div></div>
+    <div class="stat"><div class="n">${pendiente}</div><div class="lbl">Pendiente</div></div>
+  `;
+}
+function renderStatusTabs(){
+  const tabs = [
+    {key:'__ALL__', label:'Todos', cls:''},
+    {key:'pendiente', label:'Pendiente', cls:''},
+    {key:'conforme', label:'Conforme', cls:'st-ok'},
+    {key:'no_conforme', label:'No conforme', cls:'st-bad'},
+    {key:'no_encontrado', label:'No encontrado', cls:'st-notfound'}
+  ];
+  $('#statusTabs').innerHTML = tabs.map(t=>`
+    <div class="status-tab ${t.cls} ${currentStatusFilter===t.key?'active':''}" data-key="${t.key}">${t.label}</div>
+  `).join('');
+  document.querySelectorAll('.status-tab').forEach(el=>{
+    el.addEventListener('click', ()=>{ currentStatusFilter = el.dataset.key; renderStatusTabs(); renderTable(); });
+  });
+}
+function mismatch(physical, system){
+  if(!physical) return false;
+  return physical.trim().toLowerCase() !== system.trim().toLowerCase();
+}
+// La marca manual (✓/✗) siempre manda; si no hay marca manual, se decide
+// automáticamente comparando el valor verificado en terreno contra el del sistema.
+function verifState(fisico, sistema, manual){
+  if(manual==='ok' || manual==='no') return manual;
+  if(!fisico) return '';
+  return mismatch(fisico, sistema) ? 'no' : 'ok';
+}
+const OBS_TAG_FLAG = 'TAG no coincide';
+const OBS_SERIAL_FLAG = 'Serial number no coincide';
+// Agrega o quita una frase automática de las observaciones, sin pisar las notas que el auditor ya escribió a mano
+function toggleObsFlag(row, flag, shouldHave){
+  const parts = (row.observaciones || '').split(',').map(s=>s.trim()).filter(Boolean);
+  const idx = parts.indexOf(flag);
+  if(shouldHave && idx===-1) parts.push(flag);
+  if(!shouldHave && idx!==-1) parts.splice(idx,1);
+  row.observaciones = parts.join(', ');
+}
+// Sincroniza Estado y Observaciones según las marcas correcto/incorrecto de TAG y Serial
+function applyVerifAutoLogic(row){
+  toggleObsFlag(row, OBS_TAG_FLAG, row.tagVerificado==='no');
+  toggleObsFlag(row, OBS_SERIAL_FLAG, row.serialVerificado==='no');
+  if(row.tagVerificado==='no' || row.serialVerificado==='no'){
+    row.estado = 'no_conforme';
+  } else if(row.tagVerificado==='ok' && row.serialVerificado==='ok'){
+    row.estado = 'conforme';
+  }
+}
+function renderTable(){
+  const data = filteredRows();
+  $('#tableBody').innerHTML = data.map(r=>`
+    <tr data-id="${r.id}">
+      <td data-label="Activo">${escapeHtml(r.activo)}<span class="sys-val">${escapeHtml(r.categoria)}</span></td>
+      <td data-label="TAG (verificar)">
+        <div class="verif-row">
+          <input class="field-input tag-input ${mismatch(r.tagFisico,r.tagSistema)?'mismatch':''}" data-id="${r.id}" data-field="tagFisico" value="${escapeHtml(r.tagFisico)}" placeholder="${escapeHtml(r.tagSistema)}">
+          <div class="verif-toggle" data-id="${r.id}" data-field="tagVerificado">
+            <button type="button" class="verif-btn ok ${r.tagVerificado==='ok'?'active':''}" data-value="ok" title="Correcto">✓</button>
+            <button type="button" class="verif-btn no ${r.tagVerificado==='no'?'active':''}" data-value="no" title="Incorrecto">✕</button>
+          </div>
+        </div>
+        <span class="sys-val">Sistema: ${escapeHtml(r.tagSistema)||'—'}</span>
+      </td>
+      <td data-label="Número de Serie (verificar)">
+        <div class="verif-row">
+          <input class="field-input serial-input ${mismatch(r.serialFisico,r.serialSistema)?'mismatch':''}" data-id="${r.id}" data-field="serialFisico" value="${escapeHtml(r.serialFisico)}" placeholder="${escapeHtml(r.serialSistema)}">
+          <div class="verif-toggle" data-id="${r.id}" data-field="serialVerificado">
+            <button type="button" class="verif-btn ok ${r.serialVerificado==='ok'?'active':''}" data-value="ok" title="Correcto">✓</button>
+            <button type="button" class="verif-btn no ${r.serialVerificado==='no'?'active':''}" data-value="no" title="Incorrecto">✕</button>
+          </div>
+        </div>
+        <span class="sys-val">Sistema: ${escapeHtml(r.serialSistema)||'—'}</span>
+      </td>
+      <td data-label="¿Ubicación OK?">
+        <select class="ubicacion-select ${r.ubicacionCorrecta==='No'?'ubic-no':r.ubicacionCorrecta==='Sí'?'ubic-ok':''}" data-id="${r.id}">
+          <option value="" ${!r.ubicacionCorrecta?'selected':''}>—</option>
+          <option value="Sí" ${r.ubicacionCorrecta==='Sí'?'selected':''}>✓ Sí</option>
+          <option value="No" ${r.ubicacionCorrecta==='No'?'selected':''}>✗ No</option>
+          <option value="N/A" ${r.ubicacionCorrecta==='N/A'?'selected':''}>N/A</option>
+        </select>
+        <span class="sys-val">Ubicación: ${escapeHtml(r.ubicacion) || 'No disponible en el Excel'}</span>
+      </td>
+      <td data-label="Estado">
+        <select class="estado-select" data-id="${r.id}">
+          <option value="pendiente" ${r.estado==='pendiente'?'selected':''}>Pendiente</option>
+          <option value="conforme" ${r.estado==='conforme'?'selected':''}>Conforme</option>
+          <option value="no_conforme" ${r.estado==='no_conforme'?'selected':''}>No conforme</option>
+          <option value="no_encontrado" ${r.estado==='no_encontrado'?'selected':''}>No encontrado</option>
+        </select>
+      </td>
+      <td data-label="Observaciones">
+        <input class="obs-input" data-id="${r.id}" value="${escapeHtml(r.observaciones)}" placeholder="Comentario…">
+      </td>
+    </tr>`
+  ).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:24px;">No hay activos que coincidan con el filtro actual.</td></tr>`;
+
+  document.querySelectorAll('.tag-input').forEach(el=>{
+    el.addEventListener('input', ()=>{ updateRow(el.dataset.id, {tagFisico: el.value}); refreshMismatchStyle(el.dataset.id); });
+  });
+  document.querySelectorAll('.serial-input').forEach(el=>{
+    el.addEventListener('input', ()=>{ updateRow(el.dataset.id, {serialFisico: el.value}); refreshMismatchStyle(el.dataset.id); });
+  });
+  document.querySelectorAll('.verif-toggle .verif-btn').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const wrap = e.target.closest('.verif-toggle');
+      const id = wrap.dataset.id, field = wrap.dataset.field;
+      const row = rows.find(r=>String(r.id)===String(id));
+      const val = e.target.dataset.value;
+      row[field] = row[field]===val ? '' : val; // click de nuevo = quitar marca
+      wrap.querySelectorAll('.verif-btn').forEach(b=>b.classList.remove('active'));
+      if(row[field]) wrap.querySelector(`.verif-btn[data-value="${row[field]}"]`).classList.add('active');
+
+      applyVerifAutoLogic(row);
+
+      const tr = e.target.closest('tr');
+      if(tr){
+        const sel = tr.querySelector('select.estado-select');
+        if(sel) sel.value = row.estado;
+        const obsInput = tr.querySelector('input.obs-input');
+        if(obsInput) obsInput.value = row.observaciones;
+      }
+      saveState();
+      renderStats();
+      renderStatusTabs();
+      if(currentStatusFilter!=='__ALL__') renderTable();
+    });
+  });
+  document.querySelectorAll('.ubicacion-select').forEach(el=>{
+    el.addEventListener('change', ()=>{ updateRow(el.dataset.id, {ubicacionCorrecta: el.value}); renderTable(); });
+  });
+  document.querySelectorAll('.estado-select').forEach(el=>{
+    el.addEventListener('change', ()=>{ updateRow(el.dataset.id, {estado: el.value}); renderStats(); renderStatusTabs(); });
+  });
+  document.querySelectorAll('.obs-input').forEach(el=>{
+    el.addEventListener('input', ()=>{ updateRow(el.dataset.id, {observaciones: el.value}); });
+  });
+}
+function refreshMismatchStyle(id){
+  const row = rows.find(r=>String(r.id)===String(id));
+  if(!row) return;
+  const tr = document.querySelector(`tr[data-id="${id}"]`);
+  if(!tr) return;
+  const tagInput = tr.querySelector('.tag-input');
+  const serialInput = tr.querySelector('.serial-input');
+  tagInput.classList.toggle('mismatch', mismatch(row.tagFisico, row.tagSistema));
+  serialInput.classList.toggle('mismatch', mismatch(row.serialFisico, row.serialSistema));
+}
+function updateRow(id, patch){
+  const row = rows.find(r=>String(r.id)===String(id));
+  if(!row) return;
+  Object.assign(row, patch);
+  saveState();
+}
+
+// ---------- Definiciones (ventana de referencia rápida) ----------
+$('#btnOpenDef').addEventListener('click', ()=> $('#defOverlay').classList.add('open'));
+$('#btnCloseDef').addEventListener('click', ()=> $('#defOverlay').classList.remove('open'));
+$('#defOverlay').addEventListener('click', e=>{
+  if(e.target.id === 'defOverlay') $('#defOverlay').classList.remove('open');
+});
+
+// ---------- Notas de campo (bitácora libre + dictado por voz + foto) ----------
+function updateNotesBadge(){
+  const badge = $('#notesBadge');
+  if(!badge) return;
+  const count = fieldNotes.length;
+  if(count>0){ badge.style.display='flex'; badge.textContent = count; }
+  else { badge.style.display='none'; }
+}
+function updateNoteTagOptions(){
+  const sel = $('#noteTag');
+  const cats = Array.from(new Set(rows.map(r=>r.categoria).filter(Boolean))).sort();
+  const opts = ['General', ...cats, 'Zona / ubicación', 'Acceso y seguridad', 'Otro'];
+  sel.innerHTML = opts.map(o=>`<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
+}
+function renderNotesList(){
+  const list = $('#notesList');
+  const items = fieldNotes.slice().sort((a,b)=>b.ts-a.ts);
+  if(!items.length){
+    list.innerHTML = '<div class="notes-empty">Todavía no hay notas registradas. Usa el botón 🎤 o escribe arriba.</div>';
+  } else {
+    list.innerHTML = items.map(n => `
+      <div class="note-item">
+        <div class="note-meta">
+          <span class="note-tag">${escapeHtml(n.tag)}</span>
+          <span class="note-time">${new Date(n.ts).toLocaleString('es-CL')}</span>
+        </div>
+        <div class="note-text">${escapeHtml(n.text)}</div>
+        ${n.photo ? `<img class="note-photo" src="${n.photo}" alt="Foto de la nota" onclick="window.open(this.src,'_blank')">` : ''}
+        <button class="note-del" data-id="${n.id}">Eliminar</button>
+      </div>
+    `).join('');
+  }
+  updateNotesBadge();
+}
+$('#btnOpenNotes').addEventListener('click', ()=>{
+  updateNoteTagOptions();
+  renderNotesList();
+  $('#notesOverlay').classList.add('open');
+  $('#noteText').focus();
+});
+$('#btnCloseNotes').addEventListener('click', ()=> $('#notesOverlay').classList.remove('open'));
+$('#notesOverlay').addEventListener('click', e=>{
+  if(e.target.id === 'notesOverlay') $('#notesOverlay').classList.remove('open');
+});
+
+// ---- Foto adjunta a la nota (se redimensiona antes de guardar) ----
+let pendingPhoto = null;
+function resizeImageFile(file){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = e=>{ img.src = e.target.result; };
+    reader.onerror = reject;
+    img.onload = ()=>{
+      const maxW = 900;
+      const scale = Math.min(1, maxW / img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', 0.6));
+    };
+    img.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+function renderPhotoPreview(){
+  const wrap = $('#photoPreviewWrap');
+  if(!pendingPhoto){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `
+    <div class="photo-preview">
+      <img src="${pendingPhoto}" alt="Foto a adjuntar">
+      <button class="photo-remove" id="btnRemovePhoto" title="Quitar foto">✕</button>
+    </div>`;
+  $('#btnRemovePhoto').addEventListener('click', ()=>{ pendingPhoto = null; renderPhotoPreview(); });
+}
+$('#btnPhotoNote').addEventListener('click', ()=> $('#photoInput').click());
+$('#photoInput').addEventListener('change', async e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    pendingPhoto = await resizeImageFile(file);
+    renderPhotoPreview();
+  }catch(err){ alert('No se pudo procesar la foto.'); }
+  e.target.value = '';
+});
+
+$('#btnSaveNote').addEventListener('click', ()=>{
+  const text = $('#noteText').value.trim();
+  if(!text && !pendingPhoto) return;
+  const tag = $('#noteTag').value || 'General';
+  fieldNotes.push({
+    id: `${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
+    ts: Date.now(),
+    tag,
+    text: text || '(sin texto, ver foto adjunta)',
+    photo: pendingPhoto || null
+  });
+  $('#noteText').value = '';
+  pendingPhoto = null;
+  renderPhotoPreview();
+  saveState();
+  renderNotesList();
+});
+$('#notesList').addEventListener('click', e=>{
+  if(!e.target.classList.contains('note-del')) return;
+  const id = e.target.dataset.id;
+  fieldNotes = fieldNotes.filter(n => String(n.id) !== String(id));
+  saveState();
+  renderNotesList();
+});
+
+// ---- Dictado por voz — Web Speech API, en modo continuo ----
+let speechRecognizer = null, isListening = false, userStoppedListening = true;
+const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+if(SpeechRecognitionCtor){
+  speechRecognizer = new SpeechRecognitionCtor();
+  speechRecognizer.lang = 'es-CL';
+  speechRecognizer.continuous = true;
+  speechRecognizer.interimResults = true;
+  speechRecognizer.onresult = e=>{
+    const ta = $('#noteText');
+    let interim = '';
+    for(let i=e.resultIndex; i<e.results.length; i++){
+      const transcript = e.results[i][0].transcript;
+      if(e.results[i].isFinal){
+        ta.value = ta.value ? `${ta.value.trim()} ${transcript.trim()}` : transcript.trim();
+      } else {
+        interim += transcript;
+      }
+    }
+    $('#listeningHint').innerHTML = interim
+      ? `<span class="dot"></span> Escuchando… "${escapeHtml(interim.trim())}"`
+      : '<span class="dot"></span> Escuchando…';
+  };
+  speechRecognizer.onend = ()=>{
+    if(!userStoppedListening){
+      try{ speechRecognizer.start(); return; }catch(err){ /* sigue abajo y se apaga */ }
+    }
+    isListening = false;
+    $('#btnMicNote').classList.remove('recording');
+    $('#listeningHint').textContent = '';
+  };
+  speechRecognizer.onerror = ()=>{
+    isListening = false;
+    userStoppedListening = true;
+    $('#btnMicNote').classList.remove('recording');
+    $('#listeningHint').textContent = '';
+  };
+}
+$('#btnMicNote').addEventListener('click', ()=>{
+  if(!speechRecognizer){
+    alert('El dictado por voz no está disponible en este navegador. Puedes escribir la nota directamente.');
+    return;
+  }
+  if(isListening){
+    userStoppedListening = true;
+    speechRecognizer.stop();
+    return;
+  }
+  try{
+    userStoppedListening = false;
+    isListening = true;
+    $('#btnMicNote').classList.add('recording');
+    $('#listeningHint').innerHTML = '<span class="dot"></span> Escuchando…';
+    speechRecognizer.start();
+  }catch(err){ isListening = false; $('#btnMicNote').classList.remove('recording'); }
+});
+
+// ---------- Exportar Excel ----------
+$('#btnExportExcel').addEventListener('click', ()=>{
+  const data = rows.map(r=>({
+    'Activo': r.activo,
+    'Categoría': r.categoria,
+    'Modelo': r.modelo,
+    'TAG Sistema': r.tagSistema,
+    'TAG Verificado': r.tagFisico,
+    'Serial Sistema': r.serialSistema,
+    'Serial Verificado': r.serialFisico,
+    'Ubicación': r.ubicacion,
+    'Ubicación OK': r.ubicacionCorrecta || '',
+    'Estado Original (planilla)': r.estadoOriginal,
+    'Estado Auditoría': STATUS_LABEL[r.estado],
+    'Observaciones': r.observaciones
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = [{wch:26},{wch:20},{wch:26},{wch:18},{wch:18},{wch:18},{wch:18},{wch:16},{wch:12},{wch:16},{wch:16},{wch:34}];
+  const wb = XLSX.utils.book_new();
+
+  const metaData = [
+    { Campo:'Sitio', Valor: coverInfo.sitio||'' },
+    { Campo:'Auditor', Valor: coverInfo.auditor||'' },
+    { Campo:'Fecha', Valor: coverInfo.fecha||'' },
+    { Campo:'Responsable de Redes', Valor: coverInfo.responsableRed||'' },
+    { Campo:'Total activos verificados', Valor: rows.length }
+  ];
+  const wsMeta = XLSX.utils.json_to_sheet(metaData);
+  wsMeta['!cols'] = [{wch:26},{wch:34}];
+  XLSX.utils.book_append_sheet(wb, wsMeta, 'Datos generales');
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Verificación Red');
+
+  if(fieldNotes.length){
+    const notesData = fieldNotes.slice().sort((a,b)=>a.ts-b.ts).map(n=>({
+      'Fecha y hora': new Date(n.ts).toLocaleString('es-CL'),
+      'Etiqueta': n.tag,
+      'Nota': n.text,
+      'Foto': n.photo ? 'Sí (ver PDF o la app)' : 'No'
+    }));
+    const wsNotes = XLSX.utils.json_to_sheet(notesData);
+    wsNotes['!cols'] = [{wch:20},{wch:20},{wch:70},{wch:18}];
+    XLSX.utils.book_append_sheet(wb, wsNotes, 'Notas de campo');
+  }
+
+  XLSX.writeFile(wb, `verificacion_red_${coverInfo.sitio||''}_${new Date().toISOString().slice(0,10)}.xlsx`);
+});
+
+// ---------- Exportar PDF ----------
+const AUTOTABLE_SOURCES = [
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.6/jspdf.plugin.autotable.min.js',
+  'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.31/dist/jspdf.plugin.autotable.min.js'
+];
+function autoTableIsReady(){
+  return !!(window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API && typeof window.jspdf.jsPDF.API.autoTable === 'function');
+}
+function loadScriptOnce(src){
+  return new Promise((resolve, reject)=>{
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = ()=> resolve();
+    s.onerror = ()=> reject(new Error('No se pudo cargar '+src));
+    document.head.appendChild(s);
+  });
+}
+async function ensureAutoTable(){
+  if(autoTableIsReady()) return;
+  for(const src of AUTOTABLE_SOURCES){
+    try{ await loadScriptOnce(src); if(autoTableIsReady()) return; }catch(err){ console.error(err); }
+  }
+  throw new Error('No se pudo cargar el generador de tablas del PDF.');
+}
+
+$('#btnExportPdf').addEventListener('click', async ()=>{
+  const btn = $('#btnExportPdf');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Generando PDF…';
+  try{
+    await ensureAutoTable();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
+
+    doc.setFontSize(14);
+    doc.setTextColor(82,37,130);
+    doc.text('Verificación de Equipos de Red', 14, 16);
+    doc.setFontSize(9);
+    doc.setTextColor(107,100,121);
+    doc.text(`Sitio: ${coverInfo.sitio||'—'}   Auditor: ${coverInfo.auditor||'—'}   Fecha: ${coverInfo.fecha||'—'}`, 14, 22);
+    doc.text(`Responsable de Redes: ${coverInfo.responsableRed||'—'}`, 14, 27);
+
+    const total = rows.length;
+    const conforme = rows.filter(r=>r.estado==='conforme').length;
+    const noConforme = rows.filter(r=>r.estado==='no_conforme').length;
+    const noEncontrado = rows.filter(r=>r.estado==='no_encontrado').length;
+    doc.text(`Total: ${total}   Conforme: ${conforme}   No conforme: ${noConforme}   No encontrado: ${noEncontrado}`, 14, 32);
+
+    doc.autoTable({
+      startY: 37,
+      head: [['Activo','TAG Sistema','TAG Verificado','Serial Sistema','Serial Verificado','Ubicación OK','Estado','Observaciones']],
+      body: rows.map(r=>[
+        r.activo, r.tagSistema, r.tagFisico, r.serialSistema, r.serialFisico,
+        r.ubicacionCorrecta || '—', STATUS_LABEL[r.estado], r.observaciones
+      ]),
+      styles: {fontSize:7.5, cellPadding:1.5, minCellHeight:9},
+      headStyles: {fillColor:[82,37,130], textColor:255, fontSize:8},
+      alternateRowStyles: {fillColor:[250,249,252]},
+      didParseCell: (data)=>{
+        if(data.section!=='body') return;
+        const row = rows[data.row.index];
+        if(!row) return;
+        if(data.column.index===2){
+          const st = verifState(row.tagFisico, row.tagSistema, row.tagVerificado);
+          if(st==='ok'){ data.cell.styles.textColor=[30,143,95]; data.cell.styles.fontStyle='bold'; }
+          else if(st==='no'){ data.cell.styles.textColor=[214,69,69]; data.cell.styles.fontStyle='bold'; }
+        }
+        if(data.column.index===4){
+          const st = verifState(row.serialFisico, row.serialSistema, row.serialVerificado);
+          if(st==='ok'){ data.cell.styles.textColor=[30,143,95]; data.cell.styles.fontStyle='bold'; }
+          else if(st==='no'){ data.cell.styles.textColor=[214,69,69]; data.cell.styles.fontStyle='bold'; }
+        }
+        if(data.column.index===5 && data.cell.raw==='No'){
+          data.cell.styles.textColor = [214,69,69];
+          data.cell.styles.fontStyle = 'bold';
+        }
+        if(data.column.index===6){
+          const map = {Conforme:[30,143,95], 'No conforme':[214,69,69], 'No encontrado':[150,99,23], Pendiente:[107,100,121]};
+          const color = map[data.cell.raw];
+          if(color){ data.cell.styles.textColor = color; data.cell.styles.fontStyle = 'bold'; }
+        }
+      }
+    });
+
+    // ---- Notas de campo tomadas durante la verificación ----
+    const notesForPdf = fieldNotes.slice().sort((a,b)=>a.ts-b.ts);
+    if(notesForPdf.length){
+      let yCursor = doc.lastAutoTable.finalY + 10;
+      if(yCursor > 180){ doc.addPage(); yCursor = 15; }
+      doc.setFontSize(10);
+      doc.setTextColor(82,37,130);
+      doc.setFont(undefined, 'bold');
+      doc.text(`NOTAS DE CAMPO (${notesForPdf.length})`, 14, yCursor);
+      doc.setFont(undefined, 'normal');
+      yCursor += 4;
+
+      doc.autoTable({
+        startY: yCursor,
+        head: [['Fecha y hora','Etiqueta','Nota','Foto']],
+        body: notesForPdf.map(n=>[new Date(n.ts).toLocaleString('es-CL'), n.tag, n.text, n.photo ? 'Sí ↓' : '—']),
+        styles: {fontSize:7.5, cellPadding:1.5, minCellHeight:9},
+        headStyles: {fillColor:[82,37,130], textColor:255, fontSize:8},
+        alternateRowStyles: {fillColor:[250,249,252]},
+        columnStyles: {0:{cellWidth:32}, 1:{cellWidth:36}, 3:{cellWidth:14}}
+      });
+
+      // ---- Galería de evidencia fotográfica: dos fotos por fila con su nota como pie de foto ----
+      const notesWithPhoto = notesForPdf.filter(n => n.photo);
+      if(notesWithPhoto.length){
+        const loadDims = src => new Promise(resolve=>{
+          const img = new Image();
+          img.onload = ()=> resolve({w: img.width, h: img.height});
+          img.onerror = ()=> resolve({w:4, h:3});
+          img.src = src;
+        });
+
+        yCursor = doc.lastAutoTable.finalY + 10;
+        if(yCursor > 170){ doc.addPage(); yCursor = 15; }
+        doc.setFontSize(10);
+        doc.setTextColor(82,37,130);
+        doc.setFont(undefined, 'bold');
+        doc.text(`EVIDENCIA FOTOGRÁFICA (${notesWithPhoto.length})`, 14, yCursor);
+        doc.setFont(undefined, 'normal');
+        yCursor += 6;
+
+        const imgW = 85, colX = [14, 108];
+        for(let i=0; i<notesWithPhoto.length; i+=2){
+          const pair = [notesWithPhoto[i], notesWithPhoto[i+1]].filter(Boolean);
+          const dims = await Promise.all(pair.map(n => loadDims(n.photo)));
+          const heights = dims.map(d => imgW * (d.h / d.w));
+          const rowH = Math.min(Math.max(...heights), 90);
+
+          if(yCursor + rowH + 14 > 200){ doc.addPage(); yCursor = 15; }
+
+          pair.forEach((n, idx)=>{
+            const x = colX[idx];
+            const h = Math.min(heights[idx], rowH);
+            try{ doc.addImage(n.photo, 'JPEG', x, yCursor, imgW, h); }catch(err){ /* si falla la imagen, se sigue sin ella */ }
+            doc.setFontSize(7);
+            doc.setTextColor(107,100,121);
+            const caption = `${new Date(n.ts).toLocaleString('es-CL')} · ${n.tag}`;
+            doc.text(caption, x, yCursor + h + 4);
+            const noteLine = n.text.length > 70 ? n.text.slice(0,70) + '…' : n.text;
+            doc.setTextColor(33,26,43);
+            doc.text(noteLine, x, yCursor + h + 8, {maxWidth: imgW});
+          });
+
+          yCursor += rowH + 14;
+        }
+      }
+    }
+
+    doc.save(`verificacion_red_${coverInfo.sitio||''}_${new Date().toISOString().slice(0,10)}.pdf`);
+  }catch(err){
+    console.error(err);
+    alert('No se pudo generar el PDF: ' + err.message);
+  }finally{
+    btn.disabled = false; btn.textContent = original;
+  }
+});
+</script>
+</body>
+</html>
