@@ -328,6 +328,9 @@
 
     <div class="toolbar">
       <input type="text" id="searchBox" placeholder="Buscar por activo, TAG o serial…">
+      <select id="locationFilter">
+        <option value="__ALL__">Todas las ubicaciones</option>
+      </select>
       <button class="btn-ghost btn-sm" id="btnNewFile">Cargar otro archivo</button>
       <button class="btn-green btn-sm" id="btnExportExcel">Exportar Excel</button>
       <button class="btn-primary btn-sm" id="btnExportPdf">Exportar PDF</button>
@@ -444,6 +447,7 @@ let rows = [];
 let coverInfo = {};
 let fieldNotes = []; // {id, ts, tag, text, photo} — bitácora de notas tomadas durante la verificación
 let currentStatusFilter = '__ALL__';
+let currentLocation = '__ALL__';
 let searchTerm = '';
 let marginError = 0.08;
 
@@ -607,11 +611,13 @@ $('#btnNewFile2').addEventListener('click', resetToUpload);
 
 // ---------- Filtros ----------
 $('#searchBox').addEventListener('input', e=>{ searchTerm = e.target.value.trim(); renderTable(); });
+$('#locationFilter').addEventListener('change', e=>{ currentLocation = e.target.value; renderTable(); });
 $('#marginSelect').addEventListener('change', e=>{ marginError = parseFloat(e.target.value); renderSamplePanel(); });
 
 function filteredRows(){
   return rows.filter(r=>{
     if(currentStatusFilter!=='__ALL__' && r.estado!==currentStatusFilter) return false;
+    if(currentLocation!=='__ALL__' && (r.ubicacion||'Sin ubicación')!==currentLocation) return false;
     if(searchTerm){
       const t = searchTerm.toLowerCase();
       return r.activo.toLowerCase().includes(t) || r.tagSistema.toLowerCase().includes(t) || r.serialSistema.toLowerCase().includes(t);
@@ -623,11 +629,30 @@ function filteredRows(){
 // ---------- Render ----------
 function renderAll(){
   renderCoverSummary();
+  renderLocationFilter();
   renderSamplePanel();
   renderStats();
   renderStatusTabs();
   renderTable();
   updateNotesBadge();
+}
+function renderLocationFilter(){
+  const sel = $('#locationFilter');
+  const counts = {};
+  rows.forEach(r=>{
+    const loc = r.ubicacion || 'Sin ubicación';
+    counts[loc] = (counts[loc]||0) + 1;
+  });
+  const locs = Object.keys(counts);
+  if(locs.length<=1 && locs[0]==='Sin ubicación'){
+    sel.style.display='none';
+    return;
+  }
+  sel.style.display='inline-block';
+  const prev = currentLocation;
+  const sorted = locs.sort((a,b)=> a.localeCompare(b, 'es'));
+  sel.innerHTML = `<option value="__ALL__">Todas las ubicaciones</option>` +
+    sorted.map(l=>`<option value="${l}" ${l===prev?'selected':''}>${escapeHtml(l)} (${counts[l]})</option>`).join('');
 }
 function renderCoverSummary(){
   $('#coverSummary').innerHTML = `
