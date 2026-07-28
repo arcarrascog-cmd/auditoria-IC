@@ -1236,7 +1236,7 @@ function filteredRows(){
       return r.activo.toLowerCase().includes(t) || r.tagSistema.toLowerCase().includes(t) || r.serialSistema.toLowerCase().includes(t);
     }
     return true;
-  });
+  }).sort((a,b) => a.activo.localeCompare(b.activo, 'es', {numeric:true, sensitivity:'base'}));
 }
 function renderStatusTabs(){
   const wrap = $('#statusTabs');
@@ -1437,77 +1437,86 @@ function renderTable(){
     return;
   }
   body.innerHTML = rowsHtml(data);
-
-  body.querySelectorAll('input.field-input').forEach(inp=>{
-    inp.addEventListener('input', onFieldEdit);
-  });
-  body.querySelectorAll('input.obs-input').forEach(inp=>{
-    inp.addEventListener('input', e=>{
-      const row = rows.find(r=>r.id==e.target.dataset.id);
-      row.observaciones = e.target.value;
-      saveState();
-    });
-  });
-  body.querySelectorAll('.obs-photo-btn').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      currentPhotoRowId = e.currentTarget.dataset.id;
-      $('#rowPhotoInput').click();
-    });
-  });
-  body.querySelectorAll('.obs-photo-del').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      const row = rows.find(r=>r.id==e.currentTarget.dataset.id);
-      const idx = parseInt(e.currentTarget.dataset.idx, 10);
-      if(row && row.fotos) row.fotos.splice(idx, 1);
-      saveState();
-      renderTable();
-    });
-  });
-  body.querySelectorAll('select.ubicacion-select').forEach(sel=>{
-    sel.addEventListener('change', e=>{
-      const row = rows.find(r=>r.id==e.target.dataset.id);
-      row.ubicacionCorrecta = e.target.value;
-      e.target.classList.toggle('ubic-no', e.target.value==='No');
-      saveState();
-    });
-  });
-  body.querySelectorAll('select.status-select').forEach(sel=>{
-    sel.addEventListener('change', e=>{
-      const row = rows.find(r=>r.id==e.target.dataset.id);
-      row.estado = e.target.value;
-      saveState();
-      renderStats();
-      renderStatusTabs();
-      if(currentStatusFilter!=='__ALL__') renderTable();
-    });
-  });
-  body.querySelectorAll('.verif-toggle .verif-btn').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      const wrap = e.target.closest('.verif-toggle');
-      const id = wrap.dataset.id, field = wrap.dataset.field;
-      const row = rows.find(r=>r.id==id);
-      const val = e.target.dataset.value;
-      row[field] = row[field]===val ? '' : val; // click de nuevo = quitar marca
-      wrap.querySelectorAll('.verif-btn').forEach(b=>b.classList.remove('active'));
-      if(row[field]) wrap.querySelector(`.verif-btn[data-value="${row[field]}"]`).classList.add('active');
-
-      applyVerifAutoLogic(row);
-
-      // Refleja Estado y Observaciones actualizados en esta fila sin reconstruir toda la tabla
-      const tr = e.target.closest('tr');
-      if(tr){
-        const sel = tr.querySelector('select.status-select');
-        if(sel) sel.value = row.estado;
-        const obsInput = tr.querySelector('input.obs-input');
-        if(obsInput) obsInput.value = row.observaciones;
-      }
-      saveState();
-      renderStats();
-      renderStatusTabs();
-      if(currentStatusFilter!=='__ALL__') renderTable();
-    });
-  });
 }
+
+// ---- Delegación de eventos de la tabla: un solo listener por tipo de evento, ----
+// ---- en vez de re-enganchar miles de listeners individuales en cada render.   ----
+// (con ~1500 activos, eso era lo que ponía lenta la escritura en el buscador)
+const tableBodyEl = $('#tableBody');
+
+tableBodyEl.addEventListener('input', e=>{
+  const t = e.target;
+  if(t.matches('input.field-input')){
+    onFieldEdit(e);
+  } else if(t.matches('input.obs-input')){
+    const row = rows.find(r=>r.id==t.dataset.id);
+    if(row){ row.observaciones = t.value; saveState(); }
+  }
+});
+
+tableBodyEl.addEventListener('change', e=>{
+  const t = e.target;
+  if(t.matches('select.ubicacion-select')){
+    const row = rows.find(r=>r.id==t.dataset.id);
+    if(row){
+      row.ubicacionCorrecta = t.value;
+      t.classList.toggle('ubic-no', t.value==='No');
+      saveState();
+    }
+  } else if(t.matches('select.status-select')){
+    const row = rows.find(r=>r.id==t.dataset.id);
+    if(row){
+      row.estado = t.value;
+      saveState();
+      renderStats();
+      renderStatusTabs();
+      if(currentStatusFilter!=='__ALL__') renderTable();
+    }
+  }
+});
+
+tableBodyEl.addEventListener('click', e=>{
+  const photoBtn = e.target.closest('.obs-photo-btn');
+  if(photoBtn){
+    currentPhotoRowId = photoBtn.dataset.id;
+    $('#rowPhotoInput').click();
+    return;
+  }
+  const delBtn = e.target.closest('.obs-photo-del');
+  if(delBtn){
+    const row = rows.find(r=>r.id==delBtn.dataset.id);
+    const idx = parseInt(delBtn.dataset.idx, 10);
+    if(row && row.fotos) row.fotos.splice(idx, 1);
+    saveState();
+    renderTable();
+    return;
+  }
+  const verifBtn = e.target.closest('.verif-toggle .verif-btn');
+  if(verifBtn){
+    const wrap = verifBtn.closest('.verif-toggle');
+    const id = wrap.dataset.id, field = wrap.dataset.field;
+    const row = rows.find(r=>r.id==id);
+    const val = verifBtn.dataset.value;
+    row[field] = row[field]===val ? '' : val; // click de nuevo = quitar marca
+    wrap.querySelectorAll('.verif-btn').forEach(b=>b.classList.remove('active'));
+    if(row[field]) wrap.querySelector(`.verif-btn[data-value="${row[field]}"]`).classList.add('active');
+
+    applyVerifAutoLogic(row);
+
+    // Refleja Estado y Observaciones actualizados en esta fila sin reconstruir toda la tabla
+    const tr = verifBtn.closest('tr');
+    if(tr){
+      const sel = tr.querySelector('select.status-select');
+      if(sel) sel.value = row.estado;
+      const obsInput = tr.querySelector('input.obs-input');
+      if(obsInput) obsInput.value = row.observaciones;
+    }
+    saveState();
+    renderStats();
+    renderStatusTabs();
+    if(currentStatusFilter!=='__ALL__') renderTable();
+  }
+});
 function mismatch(physical, system){
   if(!physical) return false;
   return physical.trim().toLowerCase() !== system.trim().toLowerCase();
@@ -1561,7 +1570,12 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-$('#searchBox').addEventListener('input', e=>{ searchTerm = e.target.value; renderTable(); });
+let searchDebounceTimer = null;
+$('#searchBox').addEventListener('input', e=>{
+  const value = e.target.value;
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(()=>{ searchTerm = value; renderTable(); }, 250);
+});
 $('#categoryFilter').addEventListener('change', e=>{ currentCategory = e.target.value; renderTable(); });
 $('#locationFilter').addEventListener('change', e=>{ currentLocation = e.target.value; renderTable(); });
 
