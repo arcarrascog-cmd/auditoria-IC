@@ -610,7 +610,12 @@ $('#btnNewFile').addEventListener('click', resetToUpload);
 $('#btnNewFile2').addEventListener('click', resetToUpload);
 
 // ---------- Filtros ----------
-$('#searchBox').addEventListener('input', e=>{ searchTerm = e.target.value.trim(); renderTable(); });
+let searchDebounceTimer = null;
+$('#searchBox').addEventListener('input', e=>{
+  const value = e.target.value.trim();
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(()=>{ searchTerm = value; renderTable(); }, 250);
+});
 $('#locationFilter').addEventListener('change', e=>{ currentLocation = e.target.value; renderTable(); });
 $('#marginSelect').addEventListener('change', e=>{ marginError = parseFloat(e.target.value); renderSamplePanel(); });
 
@@ -623,7 +628,7 @@ function filteredRows(){
       return r.activo.toLowerCase().includes(t) || r.tagSistema.toLowerCase().includes(t) || r.serialSistema.toLowerCase().includes(t);
     }
     return true;
-  });
+  }).sort((a,b) => a.activo.localeCompare(b.activo, 'es', {numeric:true, sensitivity:'base'}));
 }
 
 // ---------- Render ----------
