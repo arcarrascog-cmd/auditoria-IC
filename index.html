@@ -185,6 +185,19 @@
   .verif-btn.ok.active{background:var(--green);border-color:var(--green-dark);color:#fff;}
   .verif-btn.no.active{background:var(--red);border-color:#a83232;color:#fff;}
   input.obs-input{font-family:inherit;width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--line);font-size:12.5px;}
+  .obs-row{display:flex;gap:5px;align-items:center;}
+  .obs-row .obs-input{flex:1;min-width:0;}
+  .obs-photo-btn{
+    width:26px;height:26px;padding:0;border-radius:6px;border:1px solid var(--line);background:#fff;
+    color:var(--purple);font-size:13px;flex-shrink:0;min-height:auto;display:flex;align-items:center;justify-content:center;
+  }
+  .obs-photos{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+  .obs-photo-thumb{position:relative;display:inline-block;}
+  .obs-photo-thumb img{width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--line);cursor:zoom-in;display:block;}
+  .obs-photo-del{
+    position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--red);color:#fff;
+    border:2px solid #fff;font-size:9px;font-weight:800;padding:0;min-height:auto;display:flex;align-items:center;justify-content:center;
+  }
 
   select.status-select{
     padding:6px 8px;border-radius:7px;border:1px solid var(--line);font-size:12px;font-weight:700;
@@ -393,6 +406,10 @@
   .note-text{font-size:13px;color:var(--ink);white-space:pre-wrap;word-break:break-word;}
   .note-del{
     margin-top:6px;background:none;border:none;color:var(--red);font-size:11.5px;font-weight:700;
+    padding:0;min-height:auto;text-decoration:underline;
+  }
+  .note-edit{
+    margin-top:6px;background:none;border:none;color:var(--purple);font-size:11.5px;font-weight:700;
     padding:0;min-height:auto;text-decoration:underline;
   }
   @media (max-width:720px){
@@ -671,10 +688,14 @@
           <button class="btn-ghost" id="btnPhotoNote" title="Adjuntar foto">📷</button>
           <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">
         </div>
+        <input type="file" id="rowPhotoInput" accept="image/*" capture="environment" style="display:none;">
         <div class="listening-hint" id="listeningHint"></div>
         <div id="photoPreviewWrap"></div>
         <textarea id="noteText" placeholder="Escribe o dicta una nota rápida (hallazgo, pendiente, contexto de la visita)…" rows="3"></textarea>
-        <button class="btn-primary btn-sm" id="btnSaveNote">Guardar nota</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn-primary btn-sm" id="btnSaveNote">Guardar nota</button>
+          <button class="btn-ghost btn-sm" id="btnCancelEditNote" style="display:none;">Cancelar edición</button>
+        </div>
         <div class="notes-list" id="notesList"></div>
       </div>
     </div>
@@ -830,7 +851,8 @@ function processUploadedData(){
       serialVerificado: '',
       estado: 'pendiente',
       observaciones: '',
-      ubicacionCorrecta: ''
+      ubicacionCorrecta: '',
+      fotos: []
     }));
 
   coverData = {};
@@ -976,7 +998,10 @@ function renderNotesList(){
         </div>
         <div class="note-text">${escapeHtml(n.text)}</div>
         ${n.photo ? `<img class="note-photo" src="${n.photo}" alt="Foto de la nota" onclick="window.open(this.src,'_blank')">` : ''}
-        <button class="note-del" data-id="${n.id}">Eliminar</button>
+        <div style="display:flex;gap:14px;">
+          <button class="note-edit" data-id="${n.id}">Editar</button>
+          <button class="note-del" data-id="${n.id}">Eliminar</button>
+        </div>
       </div>
     `).join('');
   }
@@ -991,6 +1016,7 @@ $('#defOverlay').addEventListener('click', e=>{
 });
 
 $('#btnOpenNotes').addEventListener('click', ()=>{
+  cancelNoteEdit();
   updateNoteTagOptions();
   renderNotesList();
   $('#notesOverlay').classList.add('open');
@@ -1044,37 +1070,97 @@ $('#photoInput').addEventListener('change', async e=>{
   e.target.value = '';
 });
 
+// ---- Foto adjunta directamente a un hallazgo/activo de la tabla (checklist) ----
+let currentPhotoRowId = null;
+$('#rowPhotoInput').addEventListener('change', async e=>{
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file || !currentPhotoRowId) return;
+  const row = rows.find(r=>r.id==currentPhotoRowId);
+  if(!row) return;
+  try{
+    const dataUrl = await resizeImageFile(file);
+    if(!row.fotos) row.fotos = [];
+    row.fotos.push(dataUrl);
+    saveState();
+    renderTable();
+  }catch(err){ alert('No se pudo procesar la foto.'); }
+});
+
+let editingNoteId = null;
+
 $('#btnSaveNote').addEventListener('click', ()=>{
   const text = $('#noteText').value.trim();
   if(!text && !pendingPhoto) return;
   const tag = $('#noteTag').value || 'General';
-  fieldNotes.push({
-    id: `${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
-    ts: Date.now(),
-    sitio: SITE_CODES.includes(currentSite) ? currentSite : '',
-    tag,
-    text: text || '(sin texto, ver foto adjunta)',
-    photo: pendingPhoto || null
-  });
+
+  if(editingNoteId){
+    const note = fieldNotes.find(n => String(n.id) === String(editingNoteId));
+    if(note){
+      note.tag = tag;
+      note.text = text || '(sin texto, ver foto adjunta)';
+      note.photo = pendingPhoto || null;
+    }
+    editingNoteId = null;
+    $('#btnSaveNote').textContent = 'Guardar nota';
+    $('#btnCancelEditNote').style.display = 'none';
+  } else {
+    fieldNotes.push({
+      id: `${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
+      ts: Date.now(),
+      sitio: SITE_CODES.includes(currentSite) ? currentSite : '',
+      tag,
+      text: text || '(sin texto, ver foto adjunta)',
+      photo: pendingPhoto || null
+    });
+  }
+
   $('#noteText').value = '';
   pendingPhoto = null;
   renderPhotoPreview();
   saveState();
   renderNotesList();
 });
+function cancelNoteEdit(){
+  editingNoteId = null;
+  $('#noteText').value = '';
+  pendingPhoto = null;
+  renderPhotoPreview();
+  $('#btnSaveNote').textContent = 'Guardar nota';
+  $('#btnCancelEditNote').style.display = 'none';
+}
+$('#btnCancelEditNote').addEventListener('click', cancelNoteEdit);
 $('#notesList').addEventListener('click', e=>{
-  if(!e.target.classList.contains('note-del')) return;
-  const id = e.target.dataset.id;
-  fieldNotes = fieldNotes.filter(n => String(n.id) !== String(id));
-  saveState();
-  renderNotesList();
+  if(e.target.classList.contains('note-del')){
+    const id = e.target.dataset.id;
+    fieldNotes = fieldNotes.filter(n => String(n.id) !== String(id));
+    if(editingNoteId === id) cancelNoteEdit();
+    saveState();
+    renderNotesList();
+    return;
+  }
+  if(e.target.classList.contains('note-edit')){
+    const id = e.target.dataset.id;
+    const note = fieldNotes.find(n => String(n.id) === String(id));
+    if(!note) return;
+    editingNoteId = id;
+    updateNoteTagOptions();
+    $('#noteTag').value = note.tag;
+    $('#noteText').value = note.text === '(sin texto, ver foto adjunta)' ? '' : note.text;
+    pendingPhoto = note.photo || null;
+    renderPhotoPreview();
+    $('#btnSaveNote').textContent = 'Guardar cambios';
+    $('#btnCancelEditNote').style.display = 'inline-block';
+    $('#noteText').focus();
+  }
 });
 
 // Dictado por voz — Web Speech API (Chrome/Edge), en modo continuo: sigue
 // escuchando aunque hagas pausas cortas al caminar, hasta que toques el
 // micrófono de nuevo para detenerlo. Los tramos finalizados se van
 // agregando al cuadro de texto; el tramo en curso se muestra como vista previa.
-let speechRecognizer = null, isListening = false, userStoppedListening = true;
+let speechRecognizer = null, isListening = false;
+let committedResultIndex = 0; // controla nosotros mismos qué resultados finales ya se agregaron, para nunca repetirlos
 const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
 if(SpeechRecognitionCtor){
   speechRecognizer = new SpeechRecognitionCtor();
@@ -1087,7 +1173,12 @@ if(SpeechRecognitionCtor){
     for(let i=e.resultIndex; i<e.results.length; i++){
       const transcript = e.results[i][0].transcript;
       if(e.results[i].isFinal){
-        ta.value = ta.value ? `${ta.value.trim()} ${transcript.trim()}` : transcript.trim();
+        // Solo agrega un resultado final si es más nuevo que el último que ya confirmamos.
+        // Esto evita que un reinicio del reconocimiento re-agregue frases ya dictadas.
+        if(i >= committedResultIndex){
+          ta.value = ta.value ? `${ta.value.trim()} ${transcript.trim()}` : transcript.trim();
+          committedResultIndex = i + 1;
+        }
       } else {
         interim += transcript;
       }
@@ -1097,18 +1188,15 @@ if(SpeechRecognitionCtor){
       : '<span class="dot"></span> Escuchando…';
   };
   speechRecognizer.onend = ()=>{
-    // Algunos navegadores cortan solos tras un rato de silencio; si el usuario
-    // no lo detuvo a propósito, se reinicia para que el dictado siga corriendo.
-    if(!userStoppedListening){
-      try{ speechRecognizer.start(); return; }catch(err){ /* sigue abajo y se apaga */ }
-    }
+    // Antes esto reintentaba reiniciar solo, pero el reinicio resetea el conteo
+    // interno del navegador y provocaba que se repitiera todo lo ya dictado.
+    // Ahora simplemente se detiene: si necesitas seguir dictando, toca el micrófono de nuevo.
     isListening = false;
     $('#btnMicNote').classList.remove('recording');
     $('#listeningHint').textContent = '';
   };
   speechRecognizer.onerror = ()=>{
     isListening = false;
-    userStoppedListening = true;
     $('#btnMicNote').classList.remove('recording');
     $('#listeningHint').textContent = '';
   };
@@ -1119,12 +1207,11 @@ $('#btnMicNote').addEventListener('click', ()=>{
     return;
   }
   if(isListening){
-    userStoppedListening = true;
     speechRecognizer.stop();
     return;
   }
   try{
-    userStoppedListening = false;
+    committedResultIndex = 0; // nueva sesión de dictado: reiniciamos el contador propio
     isListening = true;
     $('#btnMicNote').classList.add('recording');
     $('#listeningHint').innerHTML = '<span class="dot"></span> Escuchando…';
@@ -1332,7 +1419,13 @@ function rowsHtml(data){
           ${Object.keys(STATUS_LABEL).map(k=>`<option value="${k}" ${r.estado===k?'selected':''}>${STATUS_LABEL[k]}</option>`).join('')}
         </select>
       </td>
-      <td data-label="Observaciones"><input class="obs-input" data-id="${r.id}" value="${escapeHtml(r.observaciones)}" placeholder="Notas de auditoría…"></td>
+      <td data-label="Observaciones">
+        <div class="obs-row">
+          <input class="obs-input" data-id="${r.id}" value="${escapeHtml(r.observaciones)}" placeholder="Notas de auditoría…">
+          <button type="button" class="obs-photo-btn" data-id="${r.id}" title="Adjuntar foto a este hallazgo">📷</button>
+        </div>
+        ${(r.fotos && r.fotos.length) ? `<div class="obs-photos">${r.fotos.map((f,i)=>`<span class="obs-photo-thumb"><img src="${f}" onclick="window.open(this.src,'_blank')"><button type="button" class="obs-photo-del" data-id="${r.id}" data-idx="${i}" title="Quitar foto">✕</button></span>`).join('')}</div>` : ''}
+      </td>
     </tr>
   `).join('');
 }
@@ -1353,6 +1446,21 @@ function renderTable(){
       const row = rows.find(r=>r.id==e.target.dataset.id);
       row.observaciones = e.target.value;
       saveState();
+    });
+  });
+  body.querySelectorAll('.obs-photo-btn').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      currentPhotoRowId = e.currentTarget.dataset.id;
+      $('#rowPhotoInput').click();
+    });
+  });
+  body.querySelectorAll('.obs-photo-del').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const row = rows.find(r=>r.id==e.currentTarget.dataset.id);
+      const idx = parseInt(e.currentTarget.dataset.idx, 10);
+      if(row && row.fotos) row.fotos.splice(idx, 1);
+      saveState();
+      renderTable();
     });
   });
   body.querySelectorAll('select.ubicacion-select').forEach(sel=>{
@@ -1488,11 +1596,12 @@ $('#btnExportExcel').addEventListener('click', ()=>{
       'Serial correcto': VERIF_LABEL[verifState(r.serialFisico, r.serialSistema, r.serialVerificado)] || '',
       'Ubicación correcta': r.ubicacionCorrecta || '',
       'Resultado auditoría': STATUS_LABEL[r.estado],
-      'Observaciones': r.observaciones
+      'Observaciones': r.observaciones,
+      'Fotos adjuntas': (r.fotos && r.fotos.length) ? `${r.fotos.length} (ver PDF)` : ''
     };
   });
   const ws = XLSX.utils.json_to_sheet(data);
-  ws['!cols'] = [{wch:12},{wch:16},{wch:24},{wch:26},{wch:20},{wch:26},{wch:16},{wch:16},{wch:20},{wch:14},{wch:18},{wch:18},{wch:14},{wch:20},{wch:20},{wch:14},{wch:20},{wch:16},{wch:30}];
+  ws['!cols'] = [{wch:12},{wch:16},{wch:24},{wch:26},{wch:20},{wch:26},{wch:16},{wch:16},{wch:20},{wch:14},{wch:18},{wch:18},{wch:14},{wch:20},{wch:20},{wch:14},{wch:20},{wch:16},{wch:30},{wch:18}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Auditoria CI');
 
@@ -1548,6 +1657,7 @@ $('#btnExportPdf').addEventListener('click', async ()=>{
     const conformes = countByEstado('conforme');
     const noConformes = countByEstado('no_conforme');
     const noEncontrados = countByEstado('no_encontrado');
+    const ubicacionIncorrecta = scope.filter(r=>r.ubicacionCorrecta==='No').length;
     const dev = noConformes + noEncontrados;
     const pctError = auditados ? Math.round((dev/auditados)*100) : 0;
 
@@ -1572,7 +1682,7 @@ $('#btnExportPdf').addEventListener('click', async ()=>{
     );
 
     // ---- Panel resumen: muestra requerida, revisados y % de error ----
-    const boxY = 32, boxH = 15;
+    const boxY = 32, boxH = 19;
     doc.setDrawColor(228,225,236);
     doc.setFillColor(246,245,249);
     doc.roundedRect(14, boxY, 269, boxH, 2, 2, 'FD');
@@ -1589,6 +1699,11 @@ $('#btnExportPdf').addEventListener('click', async ()=>{
       18, boxY + 10.5
     );
     doc.text(`Conformes: ${conformes}    No conformes: ${noConformes}    No encontrados: ${noEncontrados}`, 18, boxY + 14.5);
+    if(ubicacionIncorrecta>0){
+      doc.setTextColor(180,90,20);
+      doc.text(`⚠ Ubicación incorrecta: ${ubicacionIncorrecta} activo${ubicacionIncorrecta===1?'':'s'} — verificar reubicación en ServiceNow`, 18, boxY + 18.5);
+      doc.setTextColor(33,26,43);
+    }
 
     doc.setFont(undefined, 'bold');
     doc.setTextColor(dev>0 ? 214 : 30, dev>0 ? 69 : 143, dev>0 ? 69 : 95);
@@ -1676,7 +1791,55 @@ $('#btnExportPdf').addEventListener('click', async ()=>{
       }
     });
 
-    // ---- Notas de campo del auditor (bitácora tomada durante el recorrido) ----
+    // ---- Evidencia fotográfica adjuntada directamente a un hallazgo/activo (checklist) ----
+    const rowsWithPhoto = reviewed.filter(r => r.fotos && r.fotos.length);
+    if(rowsWithPhoto.length){
+      const photoEntries = [];
+      rowsWithPhoto.forEach(r => r.fotos.forEach(f => photoEntries.push({row:r, photo:f})));
+
+      yCursor = doc.lastAutoTable.finalY + 10;
+      if(yCursor > 170){ doc.addPage(); yCursor = 15; }
+      doc.setFontSize(10);
+      doc.setTextColor(82,37,130);
+      doc.setFont(undefined, 'bold');
+      doc.text(`EVIDENCIA FOTOGRÁFICA POR HALLAZGO (${photoEntries.length})`, 14, yCursor);
+      doc.setFont(undefined, 'normal');
+      yCursor += 6;
+
+      const loadDimsRow = src => new Promise(resolve=>{
+        const img = new Image();
+        img.onload = ()=> resolve({w: img.width, h: img.height});
+        img.onerror = ()=> resolve({w:4, h:3});
+        img.src = src;
+      });
+
+      const imgW = 85, colX = [14, 108];
+      for(let i=0; i<photoEntries.length; i+=2){
+        const pair = [photoEntries[i], photoEntries[i+1]].filter(Boolean);
+        const dims = await Promise.all(pair.map(p => loadDimsRow(p.photo)));
+        const heights = dims.map(d => imgW * (d.h / d.w));
+        const rowH = Math.min(Math.max(...heights), 90);
+
+        if(yCursor + rowH + 16 > 200){ doc.addPage(); yCursor = 15; }
+
+        pair.forEach((p, idx)=>{
+          const x = colX[idx];
+          const h = Math.min(heights[idx], rowH);
+          try{ doc.addImage(p.photo, 'JPEG', x, yCursor, imgW, h); }catch(err){ /* si falla la imagen, se sigue sin ella */ }
+          doc.setFontSize(7);
+          doc.setTextColor(82,37,130);
+          doc.setFont(undefined, 'bold');
+          const estadoTxt = STATUS_LABEL[p.row.estado] || '';
+          doc.text(`${p.row.activo}  ·  ${estadoTxt}`, x, yCursor + h + 4);
+          doc.setFont(undefined, 'normal');
+          doc.setTextColor(107,100,121);
+          const obsLine = (p.row.observaciones||'').length > 70 ? p.row.observaciones.slice(0,70) + '…' : (p.row.observaciones || 'Sin observaciones');
+          doc.text(obsLine, x, yCursor + h + 8, {maxWidth: imgW});
+        });
+
+        yCursor += rowH + 16;
+      }
+    }
     const notesForPdf = notesForCurrentSite().slice().sort((a,b)=>a.ts-b.ts);
     if(notesForPdf.length){
       yCursor = doc.lastAutoTable.finalY + 10;
