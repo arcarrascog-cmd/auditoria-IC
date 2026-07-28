@@ -92,6 +92,10 @@
   }
   .resume-bar div.txt{font-size:13px;color:#166847;}
   .resume-bar b{display:block;font-size:14px;color:var(--purple-dark);margin-bottom:2px;}
+  .restore-backup-row{
+    display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--ink-soft);
+    margin-bottom:18px;flex-wrap:wrap;
+  }
 
   button{
     font-family:inherit;
@@ -283,6 +287,7 @@
     .cover-summary .btn-ghost{margin-left:0;width:100%;order:99;}
     .sample-panel{padding:14px;}
     .sample-value{font-size:19px;}
+    .sample-panel .progress-wrap{width:100%;min-width:0;}
 
     /* Botones y campos más grandes para el dedo */
     button{padding:12px 18px;font-size:15px;min-height:44px;}
@@ -291,7 +296,6 @@
 
     /* Barra de herramientas apilada */
     .toolbar{flex-direction:column;align-items:stretch;}
-    .toolbar .progress-wrap{order:1;}
     .toolbar input[type=text]{width:100%;order:2;}
     #categoryFilter{order:3;width:100%;}
     #locationFilter{order:3;width:100%;}
@@ -327,8 +331,9 @@
       background:#fff;border-top:1px solid var(--line);
       padding:10px 12px calc(10px + env(safe-area-inset-bottom));
       box-shadow:0 -2px 10px rgba(33,26,43,.08);
+      overflow-x:auto;-webkit-overflow-scrolling:touch;
     }
-    .mobile-action-bar button{flex:1;min-height:48px;font-size:14px;}
+    .mobile-action-bar button{flex:0 0 auto;min-width:84px;min-height:48px;font-size:14px;}
   }
   .mobile-action-bar{display:none;}
 
@@ -492,6 +497,11 @@
     </div>
   </div>
 
+  <div class="restore-backup-row no-print" id="restoreBackupRow">
+    ¿Tenés un archivo de respaldo (.json)?
+    <label class="btn-ghost btn-sm" style="margin:0;cursor:pointer;display:inline-block;">Restaurar respaldo<input type="file" id="restoreBackupInput" accept=".json" style="display:none;"></label>
+  </div>
+
   <div id="uploadScreen" style="display:none;">
     <div class="card">
       <label class="upload-zone" id="dropZone">
@@ -571,15 +581,14 @@
       <div class="sample-left">
         <div class="cs-label">Muestra requerida (95% confianza · margen 8% · QUA-FOR-040)</div>
         <div class="sample-value" id="sampleRequired">—</div>
-        <div class="sample-sub" id="sampleProgress">—</div>
       </div>
-    </div>
-
-    <div class="toolbar no-print">
       <div class="progress-wrap">
         <div class="progress-bar"><div id="progressFill" style="width:0%"></div></div>
         <div class="progress-label" id="progressLabel">0% auditado</div>
       </div>
+    </div>
+
+    <div class="toolbar no-print">
       <input type="text" id="searchBox" placeholder="Buscar por activo, TAG o serial…">
       <select id="categoryFilter" style="padding:9px 12px;border-radius:8px;border:1px solid var(--line);font-size:13px;">
         <option value="__ALL__">Todas las categorías</option>
@@ -592,6 +601,9 @@
         <button class="btn-ghost btn-sm" id="btnNewFile">Cargar otro archivo</button>
         <button class="btn-green btn-sm" id="btnExportExcel" title="Descarga solo los activos ya revisados">Descargar Excel</button>
         <button class="btn-primary btn-sm" id="btnExportPdf" title="Descarga solo los activos ya revisados">Descargar PDF</button>
+        <button class="btn-ghost btn-sm" id="btnExportWord" title="Descarga un .doc editable en Word con el mismo contenido del informe">Descargar Word</button>
+        <button class="btn-ghost btn-sm" id="btnBackup" title="Descarga un archivo con todo tu progreso, por si se borra el navegador">Respaldar progreso</button>
+        <button class="btn-ghost btn-sm" id="btnExportGaps" title="Documento corto de 1 página, para enviar a quien administra ServiceNow">Exportar Brechas (ServiceNow)</button>
       </div>
     </div>
 
@@ -620,6 +632,8 @@
       <button class="btn-ghost" id="btnNewFileMobile">Nuevo archivo</button>
       <button class="btn-green" id="btnExportExcelMobile">Excel</button>
       <button class="btn-primary" id="btnExportPdfMobile">PDF</button>
+      <button class="btn-ghost" id="btnExportWordMobile">Word</button>
+      <button class="btn-ghost" id="btnBackupMobile">Respaldar</button>
     </div>
 
     <button class="def-fab no-print" id="btnOpenDef" title="Definiciones">📖</button>
@@ -867,6 +881,7 @@ function processUploadedData(){
   saveState();
   $('#uploadScreen').style.display='none';
   $('#auditScreen').style.display='block';
+  $('#restoreBackupRow').style.display='none';
   renderAll();
 }
 
@@ -896,6 +911,7 @@ $('#coverSite').addEventListener('change', e=>{ fillCoverFormFromData(e.target.v
 $('#btnBackMap').addEventListener('click', ()=>{
   $('#coverScreen').style.display='none';
   $('#auditScreen').style.display='block';
+  $('#restoreBackupRow').style.display='none';
 });
 
 $('#btnStartAudit').addEventListener('click', ()=>{
@@ -913,6 +929,7 @@ $('#btnStartAudit').addEventListener('click', ()=>{
     saveState();
     $('#coverScreen').style.display='none';
     $('#auditScreen').style.display='block';
+  $('#restoreBackupRow').style.display='none';
     renderAll();
   } else {
     pendingCoverInfo = info;
@@ -935,6 +952,59 @@ async function saveState(){
     localStorage.setItem(STORAGE_KEY, JSON.stringify({rows, mapping, coverData, currentSite, fieldNotes, savedAt: Date.now()}));
   }catch(err){ console.error('No se pudo guardar localmente', err); }
 }
+
+// ---------- Respaldo descargable (.json) — por si se borra el caché del navegador ----------
+function downloadBackup(){
+  if(!rows.length){
+    alert('Todavía no hay ninguna auditoría cargada para respaldar.');
+    return;
+  }
+  const payload = {rows, mapping, coverData, currentSite, fieldNotes, savedAt: Date.now(), backup: true};
+  const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `respaldo_auditoria_ci_${currentSite}_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+$('#btnBackup').addEventListener('click', downloadBackup);
+$('#btnBackupMobile').addEventListener('click', downloadBackup);
+
+$('#restoreBackupInput').addEventListener('change', e=>{
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(!data.rows || !Array.isArray(data.rows) || !data.rows.length){
+        alert('Este archivo no parece ser un respaldo válido de la herramienta (no tiene activos).');
+        return;
+      }
+      rows = data.rows;
+      mapping = data.mapping || {};
+      coverData = data.coverData || {};
+      currentSite = data.currentSite || '__ALL__';
+      fieldNotes = data.fieldNotes || [];
+      saveState();
+      $('#resumeBar').style.display='none';
+      $('#restoreBackupRow').style.display='none';
+      $('#uploadScreen').style.display='none';
+      $('#coverScreen').style.display='none';
+      $('#auditScreen').style.display='block';
+      renderAll();
+    }catch(err){
+      console.error(err);
+      alert('No se pudo leer el archivo de respaldo. Asegúrate de elegir el .json que descargaste con "Respaldar progreso".');
+    }
+  };
+  reader.readAsText(file);
+});
+
 async function checkResume(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -957,6 +1027,7 @@ $('#btnResume').addEventListener('click', ()=>{
   $('#uploadScreen').style.display='none';
   $('#coverScreen').style.display='none';
   $('#auditScreen').style.display='block';
+  $('#restoreBackupRow').style.display='none';
   renderAll();
 });
 $('#btnDiscard').addEventListener('click', async ()=>{
@@ -1132,6 +1203,7 @@ function cancelNoteEdit(){
 $('#btnCancelEditNote').addEventListener('click', cancelNoteEdit);
 $('#notesList').addEventListener('click', e=>{
   if(e.target.classList.contains('note-del')){
+    if(!confirm('¿Eliminar esta nota? No se puede deshacer.')) return;
     const id = e.target.dataset.id;
     fieldNotes = fieldNotes.filter(n => String(n.id) !== String(id));
     if(editingNoteId === id) cancelNoteEdit();
@@ -1262,7 +1334,6 @@ function renderAll(){
   renderLocationFilter();
   renderStatusTabs();
   renderCoverSummaryBar();
-  renderSamplePanel();
   renderStats();
   renderTable();
   updateNotesBadge();
@@ -1281,11 +1352,7 @@ function renderSamplePanel(){
   if(N===0){ panel.style.display='none'; return; }
   panel.style.display='flex';
   const required = calcSampleSize(N, marginError);
-  const reviewed = rows.filter(r=>r.estado!=='pendiente').length;
   $('#sampleRequired').textContent = `${required} de ${N} activos`;
-  $('#sampleProgress').textContent = reviewed>=required
-    ? `✅ Llevas ${reviewed} revisados — ya cumples la muestra estadística mínima.`
-    : `Llevas ${reviewed} revisados — te faltan ${required-reviewed} para cumplir la muestra mínima.`;
 }
 function renderCoverSummaryBar(){
   const bar = $('#coverSummaryBar');
@@ -1356,12 +1423,17 @@ function renderStats(){
   $('#progressFill').style.width = pct+'%';
   $('#progressLabel').textContent = `${pct}% de la muestra auditada (${Math.min(auditados,required)}/${required}) · Faltan ${pendientesMuestra} por auditar`;
 
+  // El panel de "muestra requerida" se refresca junto con la barra de progreso,
+  // para que nunca queden desincronizados entre sí.
+  renderSamplePanel();
+
   $('#printMeta').textContent = `Generado ${new Date().toLocaleString('es-CL')} · ${scope.length} activos${currentSite!=='__ALL__' ? ' · Sitio '+currentSite : ''}`;
 }
 const STATUS_LABEL = {pendiente:'Pendiente',conforme:'Conforme',no_conforme:'No conforme',no_encontrado:'No encontrado'};
 const VERIF_LABEL = {ok:'Correcto', no:'Incorrecto'};
 const OBS_TAG_FLAG = 'TAG no coincide';
 const OBS_SERIAL_FLAG = 'Serial number no coincide';
+const OBS_UBICACION_FLAG = 'Ubicación incorrecta';
 // Agrega o quita una frase automática de las observaciones, sin pisar las notas que el auditor ya escribió a mano
 function toggleObsFlag(row, flag, shouldHave){
   const parts = (row.observaciones || '').split(',').map(s=>s.trim()).filter(Boolean);
@@ -1370,11 +1442,12 @@ function toggleObsFlag(row, flag, shouldHave){
   if(!shouldHave && idx!==-1) parts.splice(idx,1);
   row.observaciones = parts.join(', ');
 }
-// Sincroniza Estado y Observaciones según las marcas correcto/incorrecto de TAG y Serial
+// Sincroniza Estado y Observaciones según TAG, Serial y Ubicación
 function applyVerifAutoLogic(row){
   toggleObsFlag(row, OBS_TAG_FLAG, row.tagVerificado==='no');
   toggleObsFlag(row, OBS_SERIAL_FLAG, row.serialVerificado==='no');
-  if(row.tagVerificado==='no' || row.serialVerificado==='no'){
+  toggleObsFlag(row, OBS_UBICACION_FLAG, row.ubicacionCorrecta==='No');
+  if(row.tagVerificado==='no' || row.serialVerificado==='no' || row.ubicacionCorrecta==='No'){
     row.estado = 'no_conforme';
   } else if(row.tagVerificado==='ok' && row.serialVerificado==='ok'){
     row.estado = 'conforme';
@@ -1461,7 +1534,21 @@ tableBodyEl.addEventListener('change', e=>{
     if(row){
       row.ubicacionCorrecta = t.value;
       t.classList.toggle('ubic-no', t.value==='No');
+
+      applyVerifAutoLogic(row);
+
+      // Refleja Estado y Observaciones actualizados en esta fila sin reconstruir toda la tabla
+      const tr = t.closest('tr');
+      if(tr){
+        const sel = tr.querySelector('select.status-select');
+        if(sel) sel.value = row.estado;
+        const obsInput = tr.querySelector('input.obs-input');
+        if(obsInput) obsInput.value = row.observaciones;
+      }
       saveState();
+      renderStats();
+      renderStatusTabs();
+      if(currentStatusFilter!=='__ALL__') renderTable();
     }
   } else if(t.matches('select.status-select')){
     const row = rows.find(r=>r.id==t.dataset.id);
@@ -1728,6 +1815,79 @@ $('#btnExportPdf').addEventListener('click', async ()=>{
     const exceptions = reviewed.filter(isExceptionRow);
     let yCursor = boxY + boxH + 7;
 
+    // ---- Brechas de datos en el CMDB (procedimiento 6.4.1) ----
+    // Esto es independiente de los hallazgos físicos: documenta qué le falta al
+    // export de ServiceNow para cumplir los 9 campos que exige el procedimiento.
+    function isGenericLocation(loc){
+      if(!loc) return false;
+      const l = String(loc).trim();
+      if(SITE_CODES.includes(l.toUpperCase())) return true;
+      if(/floor/i.test(l)) return true;
+      if(/^roof$/i.test(l)) return true;
+      return false;
+    }
+    const genericLocCounts = {};
+    scope.forEach(r=>{
+      if(isGenericLocation(r.sitioDetalle)){
+        const key = r.sitioDetalle.trim();
+        genericLocCounts[key] = (genericLocCounts[key]||0) + 1;
+      }
+    });
+    const genericLocTotal = Object.values(genericLocCounts).reduce((a,b)=>a+b, 0);
+    const genericLocPct = scope.length ? Math.round((genericLocTotal/scope.length)*100) : 0;
+    const genericLocBreakdown = Object.entries(genericLocCounts)
+      .sort((a,b)=>b[1]-a[1])
+      .map(([k,v])=>`${k}: ${v}`).join('  ·  ');
+
+    if(yCursor > 150){ doc.addPage(); yCursor = 15; }
+    doc.setFontSize(10);
+    doc.setTextColor(82,37,130);
+    doc.setFont(undefined, 'bold');
+    doc.text('BRECHAS DE DATOS EN EL CMDB (Procedimiento de Activos, 6.4.1)', 14, yCursor);
+    doc.setFont(undefined, 'normal');
+    yCursor += 5;
+    doc.setFontSize(7.8);
+    doc.setTextColor(107,100,121);
+    doc.text('Independiente de los hallazgos físicos de este recorrido — son vacíos estructurales del propio registro en ServiceNow.', 14, yCursor);
+    yCursor += 6;
+
+    const gapItems = [
+      {
+        title: `1. Ubicación genérica (sin sala/rack específico): ${genericLocTotal} activos (${genericLocPct}% del total)`,
+        body: genericLocTotal
+          ? `Estos activos están registrados solo a nivel de sitio o piso, no de sala: ${genericLocBreakdown}. Sin ese detalle, verificar "¿Ubicación OK?" durante la auditoría queda limitado a confirmar el sitio, no la sala real donde está instalado el activo.`
+          : 'No se detectaron ubicaciones genéricas en este export.'
+      },
+      {
+        title: '2. Propietario del activo: no disponible en el export',
+        body: 'El export actual no indica si un activo es de Operaciones, Redes o TIC. Esto importa porque el Propietario define a quién escalar cuando un activo falla o queda como hallazgo — sin ese dato, cada No Conformidad requiere averiguar manualmente el área responsable antes de poder asignarla.'
+      },
+      {
+        title: '3. Fecha de entrada en vigor: no disponible en el export',
+        body: 'No hay forma de saber cuándo entró en operación cada activo. Ese dato es clave para trazabilidad de garantía, planificación de mantenimiento preventivo y para identificar activos con antigüedad que deberían evaluarse por obsolescencia.'
+      },
+      {
+        title: '4. Fabricante: no es un campo independiente',
+        body: 'El campo "Modelo" trae el fabricante y el modelo mezclados en un solo texto libre (ejemplo real: CRAH-A1-2-1 → Modelo "Vertiv PH111-11400812"). Sin un campo Fabricante separado, no se puede filtrar ni reportar por marca — algo necesario para gestionar contratos de mantenimiento, garantías y alertas de recall por fabricante.'
+      }
+    ];
+
+    gapItems.forEach(item=>{
+      const bodyLines = doc.splitTextToSize(item.body, 265);
+      const blockH = 5 + (bodyLines.length * 3.6) + 3;
+      if(yCursor + blockH > 200){ doc.addPage(); yCursor = 15; }
+      doc.setFontSize(8.3);
+      doc.setTextColor(180,90,20);
+      doc.setFont(undefined, 'bold');
+      doc.text(item.title, 14, yCursor);
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(7.8);
+      doc.setTextColor(33,26,43);
+      doc.text(bodyLines, 14, yCursor + 4.2);
+      yCursor += 4.2 + (bodyLines.length * 3.6) + 4;
+    });
+    yCursor += 3;
+
     if(exceptions.length){
       doc.setFontSize(10);
       doc.setTextColor(214,69,69);
@@ -1932,7 +2092,267 @@ $('#btnExportPdf').addEventListener('click', async ()=>{
   }
 });
 
-// Botones de la barra fija móvil: disparan las mismas acciones que los de escritorio
+// ---------- Exportar Word (.doc editable — mismo contenido que el PDF) ----------
+// Se genera como HTML con el "vocabulario" que Word reconoce al abrir un .doc:
+// no es un .docx binario real, pero Word lo abre y edita como documento normal,
+// sin depender de ninguna librería externa por CDN (más confiable en terreno).
+function isGenericLocationWord(loc){
+  if(!loc) return false;
+  const l = String(loc).trim();
+  if(SITE_CODES.includes(l.toUpperCase())) return true;
+  if(/floor/i.test(l)) return true;
+  if(/^roof$/i.test(l)) return true;
+  return false;
+}
+function escapeWord(s){ return escapeHtml(s); }
+
+// ---------- Exportar solo "Brechas de datos" — documento corto para el admin de ServiceNow ----------
+$('#btnExportGaps').addEventListener('click', async ()=>{
+  if(!rows.length){
+    alert('Todavía no hay ninguna auditoría cargada.');
+    return;
+  }
+  const btn = $('#btnExportGaps');
+  const originalText = btn.textContent;
+  btn.textContent = 'Generando…';
+  btn.disabled = true;
+
+  try{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+    const scope = rows;
+
+    const genericLocCounts = {};
+    scope.forEach(r=>{
+      if(isGenericLocationWord(r.sitioDetalle)){
+        const key = r.sitioDetalle.trim();
+        genericLocCounts[key] = (genericLocCounts[key]||0) + 1;
+      }
+    });
+    const genericLocTotal = Object.values(genericLocCounts).reduce((a,b)=>a+b, 0);
+    const genericLocPct = scope.length ? Math.round((genericLocTotal/scope.length)*100) : 0;
+    const genericLocBreakdown = Object.entries(genericLocCounts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k}: ${v}`).join('  ·  ');
+
+    const gapItems = [
+      {title:`1. Ubicación genérica (sin sala/rack específico): ${genericLocTotal} activos (${genericLocPct}% del total)`,
+       body: genericLocTotal ? `Estos activos están registrados solo a nivel de sitio o piso, no de sala: ${genericLocBreakdown}. Sin ese detalle, un auditor solo puede confirmar el sitio, no la sala real donde está instalado el activo.` : 'No se detectaron ubicaciones genéricas en este export.'},
+      {title:'2. Propietario del activo: no disponible en el export',
+       body:'No se indica si un activo es de Operaciones, Redes o TIC. El Propietario define a quién escalar cuando un activo falla o queda como hallazgo de auditoría — sin ese dato, cada No Conformidad requiere averiguar manualmente el área responsable.'},
+      {title:'3. Fecha de entrada en vigor: no disponible en el export',
+       body:'No hay forma de saber cuándo entró en operación cada activo. Ese dato es clave para trazabilidad de garantía, mantenimiento preventivo y detección de activos obsoletos.'},
+      {title:'4. Fabricante: no es un campo independiente',
+       body:'El campo "Modelo" trae el fabricante y el modelo mezclados en texto libre (ejemplo real: CRAH-A1-2-1 → Modelo "Vertiv PH111-11400812"). Sin un campo Fabricante separado no se puede filtrar ni reportar por marca — necesario para contratos de mantenimiento, garantías y alertas de recall.'}
+    ];
+
+    doc.setFontSize(15);
+    doc.setTextColor(82,37,130);
+    doc.setFont(undefined, 'bold');
+    doc.text('Brechas de Datos en el CMDB', 18, 20);
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(107,100,121);
+    doc.text('Hallazgo de auditoría de Configuration Items — para revisión del área que administra ServiceNow', 18, 27);
+
+    doc.setFontSize(9);
+    doc.setTextColor(33,26,43);
+    doc.text(`Data Center: ${currentSite}    Fecha: ${new Date().toLocaleDateString('es-CL')}    Auditor (PMA): ${coverData[currentSite]?.auditor||''}    Total activos en export: ${scope.length}`, 18, 35);
+
+    doc.setDrawColor(228,225,236);
+    doc.line(18, 39, 192, 39);
+
+    doc.setFontSize(9.5);
+    doc.setTextColor(107,100,121);
+    let y = 47;
+    const introLines = doc.splitTextToSize('Referencia: Procedimiento de Activos, apartado 6.4.1, que exige 9 campos en el CMDB (Ubicación, Nombre IC, Modelo, Serial, Fecha de entrada, Tipo, Fabricante, TAG, Propietario). Los siguientes 4 puntos son vacíos estructurales del propio registro en ServiceNow, independientes de cualquier hallazgo físico de auditoría.', 174);
+    doc.text(introLines, 18, y);
+    y += introLines.length * 4.2 + 6;
+
+    gapItems.forEach(item=>{
+      const bodyLines = doc.splitTextToSize(item.body, 174);
+      const blockH = 6 + (bodyLines.length * 4.4) + 6;
+      if(y + blockH > 275){ doc.addPage(); y = 20; }
+      doc.setFontSize(10.5);
+      doc.setTextColor(180,90,20);
+      doc.setFont(undefined, 'bold');
+      doc.text(item.title, 18, y);
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(33,26,43);
+      doc.text(bodyLines, 18, y + 5.5);
+      y += 5.5 + (bodyLines.length * 4.4) + 7;
+    });
+
+    if(y > 265){ doc.addPage(); y = 20; }
+    doc.setFontSize(8);
+    doc.setTextColor(107,100,121);
+    doc.text('Para el detalle completo de la auditoría física (activos verificados uno por uno), ver el informe "Reporte de Auditoría — Configuration Items" del mismo Data Center.', 18, y + 4, {maxWidth: 174});
+
+    doc.save(`brechas_cmdb_${currentSite}_${new Date().toISOString().slice(0,10)}.pdf`);
+  }catch(err){
+    console.error('Error generando el documento de brechas:', err);
+    alert('No se pudo generar el documento: ' + err.message);
+  }finally{
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+});
+
+$('#btnExportWord').addEventListener('click', buildWordReport);
+$('#btnExportWordMobile').addEventListener('click', ()=> $('#btnExportWord').click());
+
+function buildWordReport(){
+  const reviewed = reviewedRows();
+  if(!reviewed.length){
+    alert('Todavía no has marcado ningún activo (Conforme / No conforme / No encontrado). Exporta cuando tengas al menos uno revisado.');
+    return;
+  }
+  const btn = $('#btnExportWord');
+  const originalText = btn.textContent;
+  btn.textContent = 'Generando Word…';
+  btn.disabled = true;
+
+  try{
+    const scope = rows;
+    const countByEstado = st => scope.filter(r=>r.estado===st).length;
+    const auditados = scope.length - countByEstado('pendiente');
+    const required = calcSampleSize(scope.length, marginError);
+    const pctMuestra = required ? Math.min(100, Math.round((auditados/required)*100)) : 0;
+    const conformes = countByEstado('conforme');
+    const noConformes = countByEstado('no_conforme');
+    const noEncontrados = countByEstado('no_encontrado');
+    const ubicacionIncorrecta = scope.filter(r=>r.ubicacionCorrecta==='No').length;
+    const dev = noConformes + noEncontrados;
+    const pctError = auditados ? Math.round((dev/auditados)*100) : 0;
+
+    const genericLocCounts = {};
+    scope.forEach(r=>{
+      if(isGenericLocationWord(r.sitioDetalle)){
+        const key = r.sitioDetalle.trim();
+        genericLocCounts[key] = (genericLocCounts[key]||0) + 1;
+      }
+    });
+    const genericLocTotal = Object.values(genericLocCounts).reduce((a,b)=>a+b, 0);
+    const genericLocPct = scope.length ? Math.round((genericLocTotal/scope.length)*100) : 0;
+    const genericLocBreakdown = Object.entries(genericLocCounts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k}: ${v}`).join('  ·  ');
+
+    const gapItems = [
+      {title:`1. Ubicación genérica (sin sala/rack específico): ${genericLocTotal} activos (${genericLocPct}% del total)`,
+       body: genericLocTotal ? `Estos activos están registrados solo a nivel de sitio o piso, no de sala: ${genericLocBreakdown}. Sin ese detalle, verificar "¿Ubicación OK?" durante la auditoría queda limitado a confirmar el sitio, no la sala real donde está instalado el activo.` : 'No se detectaron ubicaciones genéricas en este export.'},
+      {title:'2. Propietario del activo: no disponible en el export',
+       body:'El export actual no indica si un activo es de Operaciones, Redes o TIC. Esto importa porque el Propietario define a quién escalar cuando un activo falla o queda como hallazgo — sin ese dato, cada No Conformidad requiere averiguar manualmente el área responsable antes de poder asignarla.'},
+      {title:'3. Fecha de entrada en vigor: no disponible en el export',
+       body:'No hay forma de saber cuándo entró en operación cada activo. Ese dato es clave para trazabilidad de garantía, planificación de mantenimiento preventivo y para identificar activos con antigüedad que deberían evaluarse por obsolescencia.'},
+      {title:'4. Fabricante: no es un campo independiente',
+       body:'El campo "Modelo" trae el fabricante y el modelo mezclados en un solo texto libre (ejemplo real: CRAH-A1-2-1 → Modelo "Vertiv PH111-11400812"). Sin un campo Fabricante separado, no se puede filtrar ni reportar por marca — algo necesario para gestionar contratos de mantenimiento, garantías y alertas de recall por fabricante.'}
+    ];
+
+    const exceptions = reviewed.filter(isExceptionRow);
+    const notesForWord = notesForCurrentSite().slice().sort((a,b)=>a.ts-b.ts);
+    const rowsWithPhoto = reviewed.filter(r => r.fotos && r.fotos.length);
+
+    let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head><meta charset="utf-8"><title>Reporte de Auditoría</title>
+<style>
+  body{font-family:Calibri,Arial,sans-serif;font-size:10.5pt;color:#211A2B;}
+  h1{color:#522582;font-size:18pt;margin-bottom:2pt;}
+  h2{color:#522582;font-size:13pt;margin-top:18pt;margin-bottom:4pt;}
+  h2.red{color:#D64545;}
+  table{border-collapse:collapse;width:100%;margin-top:6pt;}
+  th{background:#522582;color:#fff;font-size:8pt;padding:4pt 6pt;text-align:left;}
+  td{border:0.5pt solid #E4E1EC;font-size:8pt;padding:4pt 6pt;vertical-align:top;}
+  .meta{color:#6B6479;font-size:9pt;}
+  .resumen{background:#F6F5F9;border:0.5pt solid #E4E1EC;padding:8pt;margin-top:8pt;}
+  .gap-title{color:#B45A14;font-weight:bold;font-size:10pt;margin-top:10pt;margin-bottom:2pt;}
+  .gap-body{font-size:9.5pt;}
+  .rowbad{background:#FBEAEA;}
+  .warn{color:#B45A14;font-size:9pt;}
+  img{max-width:260px;}
+  .photo-cap{font-size:8.5pt;color:#6B6479;margin:2pt 0 10pt;}
+</style></head><body>
+<h1>Reporte de Auditoría — Configuration Items</h1>
+<div class="meta">Generado ${new Date().toLocaleString('es-CL')}</div>
+<div class="meta">Data Center: ${escapeWord(currentSite)} &nbsp; Auditor (PMA): ${escapeWord(coverData[currentSite]?.auditor||'')} &nbsp; Responsable DC: ${escapeWord(coverData[currentSite]?.responsableDC||'')} &nbsp; Activos: ${escapeWord(coverData[currentSite]?.tipoActivos||'')}</div>
+
+<div class="resumen">
+  <b style="color:#522582;">RESUMEN DE AUDITORÍA</b><br>
+  Muestra requerida (QUA-FOR-040, margen ${Math.round(marginError*100)}%): ${required} de ${scope.length} activos &nbsp;·&nbsp; Revisados: ${auditados} (${pctMuestra}% de la muestra)<br>
+  Conformes: ${conformes} &nbsp; No conformes: ${noConformes} &nbsp; No encontrados: ${noEncontrados}<br>
+  ${ubicacionIncorrecta>0 ? `<span class="warn">⚠ Ubicación incorrecta: ${ubicacionIncorrecta} activos — verificar reubicación en ServiceNow</span><br>` : ''}
+  <b style="color:${dev>0?'#D64545':'#22A873'};">% de error: ${pctError}%</b>
+</div>
+
+<h2>BRECHAS DE DATOS EN EL CMDB (Procedimiento de Activos, 6.4.1)</h2>
+<div class="meta">Independiente de los hallazgos físicos de este recorrido — son vacíos estructurales del propio registro en ServiceNow.</div>`;
+
+    gapItems.forEach(g=>{
+      html += `<div class="gap-title">${escapeWord(g.title)}</div><div class="gap-body">${escapeWord(g.body)}</div>`;
+    });
+
+    html += `<h2 class="red">EXCEPCIONES / HALLAZGOS (${exceptions.length})</h2>
+<table><tr><th>Activo</th><th>TAG Sistema</th><th>TAG Verificado</th><th>Serial Sistema</th><th>Serial Verificado</th><th>Motivo</th><th>Observaciones</th></tr>`;
+    exceptions.forEach(r=>{
+      const motivos = [];
+      if(mismatch(r.tagFisico, r.tagSistema)) motivos.push('TAG no coincide');
+      if(mismatch(r.serialFisico, r.serialSistema)) motivos.push('Serial no coincide');
+      if(r.ubicacionCorrecta==='No') motivos.push('Ubicación incorrecta');
+      if(r.estado==='no_conforme' && !motivos.length) motivos.push('No conforme');
+      if(r.estado==='no_encontrado') motivos.push('No encontrado');
+      html += `<tr class="rowbad"><td>${escapeWord(r.activo)}</td><td>${escapeWord(r.tagSistema)}</td><td>${escapeWord(r.tagFisico)||'—'}</td><td>${escapeWord(r.serialSistema)}</td><td>${escapeWord(r.serialFisico)||'—'}</td><td>${escapeWord(motivos.join(', '))}</td><td>${escapeWord(r.observaciones)}</td></tr>`;
+    });
+    html += `</table>`;
+
+    html += `<h2>DETALLE COMPLETO DE ACTIVOS REVISADOS</h2>
+<table><tr><th>Activo</th><th>TAG Sistema</th><th>TAG Verificado</th><th>Serial Sistema</th><th>Serial Verificado</th><th>Ubicación OK</th><th>Estado</th><th>Observaciones</th></tr>`;
+    reviewed.forEach(r=>{
+      const cls = r.estado==='no_conforme' ? ' class="rowbad"' : '';
+      html += `<tr${cls}><td>${escapeWord(r.activo)}</td><td>${escapeWord(r.tagSistema)}</td><td>${escapeWord(r.tagFisico)||'—'}</td><td>${escapeWord(r.serialSistema)}</td><td>${escapeWord(r.serialFisico)||'—'}</td><td>${escapeWord(r.ubicacionCorrecta)||'—'}</td><td>${escapeWord(STATUS_LABEL[r.estado])}</td><td>${escapeWord(r.observaciones)}</td></tr>`;
+    });
+    html += `</table>`;
+
+    if(notesForWord.length){
+      html += `<h2>NOTAS DE CAMPO DEL AUDITOR (${notesForWord.length})</h2>
+<table><tr><th>Fecha y hora</th><th>Etiqueta</th><th>Nota</th></tr>`;
+      notesForWord.forEach(n=>{
+        html += `<tr><td>${new Date(n.ts).toLocaleString('es-CL')}</td><td>${escapeWord(n.tag)}</td><td>${escapeWord(n.text)}</td></tr>`;
+      });
+      html += `</table>`;
+    }
+
+    if(rowsWithPhoto.length){
+      html += `<h2>EVIDENCIA FOTOGRÁFICA POR HALLAZGO</h2>`;
+      rowsWithPhoto.forEach(r=>{
+        r.fotos.forEach(f=>{
+          html += `<img src="${f}"><div class="photo-cap"><b>${escapeWord(r.activo)}</b> · ${escapeWord(STATUS_LABEL[r.estado])}<br>${escapeWord(r.observaciones||'Sin observaciones')}</div>`;
+        });
+      });
+    }
+    const notesWithPhoto = notesForWord.filter(n=>n.photo);
+    if(notesWithPhoto.length){
+      html += `<h2>EVIDENCIA FOTOGRÁFICA (notas de campo)</h2>`;
+      notesWithPhoto.forEach(n=>{
+        html += `<img src="${n.photo}"><div class="photo-cap">${new Date(n.ts).toLocaleString('es-CL')} · ${escapeWord(n.tag)}<br>${escapeWord(n.text)}</div>`;
+      });
+    }
+
+    html += `</body></html>`;
+
+    const blob = new Blob(['\ufeff', html], {type:'application/msword'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `auditoria_ci_${currentSite}_${new Date().toISOString().slice(0,10)}.doc`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }catch(err){
+    console.error('Error generando Word:', err);
+    alert('No se pudo generar el documento Word: ' + err.message);
+  }finally{
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
 $('#btnNewFileMobile').addEventListener('click', ()=> $('#btnNewFile').click());
 $('#btnExportExcelMobile').addEventListener('click', ()=> $('#btnExportExcel').click());
 $('#btnExportPdfMobile').addEventListener('click', ()=> $('#btnExportPdf').click());
