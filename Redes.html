@@ -954,7 +954,8 @@ $('#notesList').addEventListener('click', e=>{
 });
 
 // ---- Dictado por voz — Web Speech API, en modo continuo ----
-let speechRecognizer = null, isListening = false, userStoppedListening = true;
+let speechRecognizer = null, isListening = false;
+let committedResultIndex = 0; // controla nosotros mismos qué resultados finales ya se agregaron, para nunca repetirlos
 const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
 if(SpeechRecognitionCtor){
   speechRecognizer = new SpeechRecognitionCtor();
@@ -967,7 +968,10 @@ if(SpeechRecognitionCtor){
     for(let i=e.resultIndex; i<e.results.length; i++){
       const transcript = e.results[i][0].transcript;
       if(e.results[i].isFinal){
-        ta.value = ta.value ? `${ta.value.trim()} ${transcript.trim()}` : transcript.trim();
+        if(i >= committedResultIndex){
+          ta.value = ta.value ? `${ta.value.trim()} ${transcript.trim()}` : transcript.trim();
+          committedResultIndex = i + 1;
+        }
       } else {
         interim += transcript;
       }
@@ -977,16 +981,12 @@ if(SpeechRecognitionCtor){
       : '<span class="dot"></span> Escuchando…';
   };
   speechRecognizer.onend = ()=>{
-    if(!userStoppedListening){
-      try{ speechRecognizer.start(); return; }catch(err){ /* sigue abajo y se apaga */ }
-    }
     isListening = false;
     $('#btnMicNote').classList.remove('recording');
     $('#listeningHint').textContent = '';
   };
   speechRecognizer.onerror = ()=>{
     isListening = false;
-    userStoppedListening = true;
     $('#btnMicNote').classList.remove('recording');
     $('#listeningHint').textContent = '';
   };
@@ -997,12 +997,11 @@ $('#btnMicNote').addEventListener('click', ()=>{
     return;
   }
   if(isListening){
-    userStoppedListening = true;
     speechRecognizer.stop();
     return;
   }
   try{
-    userStoppedListening = false;
+    committedResultIndex = 0;
     isListening = true;
     $('#btnMicNote').classList.add('recording');
     $('#listeningHint').innerHTML = '<span class="dot"></span> Escuchando…';
