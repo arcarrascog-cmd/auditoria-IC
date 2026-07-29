@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<script>
+  // Aplica el tema guardado ANTES de pintar la página, para que no haya parpadeo claro→oscuro
+  try{
+    var savedTheme = localStorage.getItem('audit-theme');
+    if(savedTheme === 'dark') document.documentElement.setAttribute('data-theme','dark');
+  }catch(e){}
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
@@ -466,8 +473,43 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     --red-bg:#FBEAEA;
     --green-bg:#E9FAF3;
     --gray-bg:#F0EFF4;
+    --brand-purple:#522582;
+    --brand-purple-dark:#3a1a5e;
     font-size:15px;
   }
+  [data-theme="dark"]{
+    --purple:#9B7BE0;
+    --purple-dark:#CDB8F5;
+    --green:#3EE0A0;
+    --green-dark:#4ADFA8;
+    --bg:#141019;
+    --panel:#1E1929;
+    --ink:#EDEAF6;
+    --ink-soft:#A69CC2;
+    --line:#332C47;
+    --red:#FF7A7A;
+    --amber:#F2BC4E;
+    --amber-bg:#3A2E17;
+    --red-bg:#3A2027;
+    --green-bg:#122E27;
+    --gray-bg:#241F33;
+  }
+  [data-theme="dark"] body{background:var(--bg);}
+  [data-theme="dark"] .upload-zone, [data-theme="dark"] .obs-photo-thumb img, [data-theme="dark"] .note-photo{
+    border-color:var(--line);
+  }
+  [data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea{
+    background:var(--panel);color:var(--ink);border-color:var(--line);
+  }
+  [data-theme="dark"] .field-input.match{background:var(--green-bg);}
+  [data-theme="dark"] .field-input.mismatch{background:var(--red-bg);}
+  [data-theme="dark"] .btn-primary:disabled{background:#4A4358;color:var(--ink-soft);}
+  .theme-toggle{
+    width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--panel);
+    color:var(--ink);font-size:16px;display:flex;align-items:center;justify-content:center;
+    padding:0;flex-shrink:0;transition:background .2s,transform .2s;
+  }
+  .theme-toggle:hover{transform:scale(1.06);}
   *{box-sizing:border-box;}
   body{
     margin:0;
@@ -484,7 +526,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   label.field-label{display:block;font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px;margin:14px 0 6px;}
   label.field-label:first-child{margin-top:0;}
   input[type=text], input[type=date], #uploadScreen select{
-    width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--line);font-size:14px;font-family:inherit;background:#fff;
+    width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--line);font-size:14px;font-family:inherit;background:var(--panel);
   }
   .upload-zone{
     display:block;border:2px dashed var(--line);border-radius:14px;padding:22px;text-align:center;
@@ -494,6 +536,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   .upload-zone h3{font-size:14px;margin:8px 0 4px;color:var(--purple-dark);}
   .upload-zone p{font-size:12px;color:var(--ink-soft);margin:0;}
   .upload-zone.filled{border-color:var(--green-dark);background:var(--green-bg);}
+  .restore-backup-row{
+    display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--ink-soft);
+    margin-bottom:18px;flex-wrap:wrap;
+  }
   input[type=file]{display:none;}
   button{cursor:pointer;border:none;border-radius:9px;padding:11px 16px;font-size:14px;font-weight:700;font-family:inherit;min-height:42px;}
   .btn-primary{background:var(--purple);color:#fff;}
@@ -511,7 +557,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   .toolbar input[type=text]{flex:1;min-width:0;}
   .search-suggest{
     display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:50;
-    background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(33,26,43,.15);
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(33,26,43,.15);
     max-height:280px;overflow-y:auto;
   }
   .search-suggest.open{display:block;}
@@ -521,7 +567,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   .search-suggest-item b{color:var(--purple-dark);}
   .search-suggest-item .ssi-sub{display:block;font-size:11px;color:var(--ink-soft);margin-top:1px;}
   .search-suggest-empty{padding:10px 12px;font-size:12.5px;color:var(--ink-soft);}
-  .toolbar select{padding:9px 12px;border-radius:8px;border:1px solid var(--line);font-size:13px;background:#fff;}
+  .toolbar select{padding:9px 12px;border-radius:8px;border:1px solid var(--line);font-size:13px;background:var(--panel);}
   .cover-summary{
     display:flex;flex-wrap:wrap;gap:14px;align-items:center;background:var(--panel);border-radius:12px;
     padding:12px 16px;margin-bottom:14px;font-size:12.5px;color:var(--ink-soft);box-shadow:0 1px 3px rgba(33,26,43,.06);
@@ -571,22 +617,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   .verif-toggle{display:flex;gap:3px;flex-shrink:0;}
   .verif-btn{
     width:23px;height:23px;padding:0;border-radius:6px;border:1px solid var(--line);
-    background:#fff;color:var(--ink-soft);font-size:12px;line-height:1;
+    background:var(--panel);color:var(--ink-soft);font-size:12px;line-height:1;
     display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:700;min-height:auto;
   }
-  .verif-btn:hover{border-color:#C9C2DA;}
+  .verif-btn:hover{border-color:var(--ink-soft);}
   .verif-btn.ok.active{background:var(--green);border-color:var(--green-dark);color:#fff;}
   .verif-btn.no.active{background:var(--red);border-color:#a83232;color:#fff;}
-  select.estado-select{width:100%;padding:7px 9px;border-radius:6px;border:1px solid var(--line);font-size:12.5px;background:#fff;}
-  select.ubicacion-select{width:100%;padding:7px 9px;border-radius:6px;border:1px solid var(--line);font-size:12.5px;background:#fff;}
+  select.estado-select{width:100%;padding:7px 9px;border-radius:6px;border:1px solid var(--line);font-size:12.5px;background:var(--panel);}
+  select.ubicacion-select{width:100%;padding:7px 9px;border-radius:6px;border:1px solid var(--line);font-size:12.5px;background:var(--panel);}
   select.ubicacion-select.ubic-no, select.rack-select.ubic-no{border-color:var(--red);background:var(--red-bg);color:var(--red);}
   select.ubicacion-select.ubic-ok, select.rack-select.ubic-ok{border-color:var(--green-dark);background:var(--green-bg);color:var(--green-dark);}
-  select.rack-select{width:100%;padding:7px 9px;border-radius:6px;border:1px solid var(--line);font-size:12.5px;background:#fff;}
+  select.rack-select{width:100%;padding:7px 9px;border-radius:6px;border:1px solid var(--line);font-size:12.5px;background:var(--panel);}
   input.obs-input{font-family:inherit;width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--line);font-size:12.5px;}
   .obs-row{display:flex;gap:5px;align-items:center;}
   .obs-row .obs-input{flex:1;min-width:0;}
   .obs-photo-btn{
-    width:26px;height:26px;padding:0;border-radius:6px;border:1px solid var(--line);background:#fff;
+    width:26px;height:26px;padding:0;border-radius:6px;border:1px solid var(--line);background:var(--panel);
     color:var(--purple);font-size:13px;flex-shrink:0;min-height:auto;display:flex;align-items:center;justify-content:center;
   }
   .obs-photos{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
@@ -619,7 +665,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   }
   .notes-fab:hover{background:var(--purple-dark);}
   .notes-fab-badge{
-    position:absolute;top:-4px;right:-4px;background:var(--green);color:var(--purple-dark);
+    position:absolute;top:-4px;right:-4px;background:var(--green);color:var(--brand-purple-dark);
     font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:10px;
     display:flex;align-items:center;justify-content:center;padding:0 5px;
     border:2px solid #fff;
@@ -631,7 +677,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   }
   .notes-overlay.open{display:flex;}
   .notes-drawer{
-    background:#fff;width:100%;max-width:560px;max-height:82vh;
+    background:var(--panel);width:100%;max-width:560px;max-height:82vh;
     border-radius:18px 18px 0 0;padding:18px 20px calc(18px + env(safe-area-inset-bottom));
     display:flex;flex-direction:column;gap:12px;overflow:hidden;
     box-shadow:0 -6px 24px rgba(33,26,43,.18);
@@ -640,10 +686,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   .notes-drawer-header h3{margin:0;color:var(--purple-dark);font-size:16px;}
   .notes-input-row{display:flex;gap:8px;align-items:center;}
   .notes-input-row select{
-    flex:1;padding:9px 10px;border-radius:8px;border:1px solid var(--line);font-size:13px;background:#fff;
+    flex:1;padding:9px 10px;border-radius:8px;border:1px solid var(--line);font-size:13px;background:var(--panel);
   }
   #btnMicNote, #btnPhotoNote{
-    width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid var(--line);
+    width:40px;height:40px;border-radius:50%;background:var(--panel);border:1px solid var(--line);
     color:var(--purple);font-size:16px;padding:0;flex-shrink:0;
   }
   #btnMicNote.recording{background:var(--red);border-color:var(--red);color:#fff;animation:pulseMic 1s infinite;}
@@ -686,7 +732,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   .def-fab{
     position:fixed;left:22px;bottom:26px;z-index:70;
     width:56px;height:56px;border-radius:50%;
-    background:#fff;color:var(--purple);font-size:22px;border:1.5px solid var(--purple);
+    background:var(--panel);color:var(--purple);font-size:22px;border:1.5px solid var(--purple);
     display:flex;align-items:center;justify-content:center;
     box-shadow:0 4px 14px rgba(82,37,130,.18);padding:0;
   }
@@ -697,7 +743,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   }
   .def-overlay.open{display:flex;}
   .def-modal{
-    background:#fff;width:100%;max-width:640px;max-height:86vh;border-radius:16px;
+    background:var(--panel);width:100%;max-width:640px;max-height:86vh;border-radius:16px;
     padding:26px 28px;overflow-y:auto;box-shadow:0 10px 40px rgba(33,26,43,.25);position:relative;
   }
   .def-modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:2px;}
@@ -740,6 +786,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       <h1>Verificación de Equipos de Red</h1>
       <div class="sub">RED-FOR-012 — valida Ubicación, TAG y Número de Serie. Herramienta aparte, no reemplaza la auditoría de IC en ServiceNow.</div>
     </div>
+    <button type="button" class="theme-toggle" id="btnThemeToggle" title="Cambiar a modo oscuro" style="margin-left:auto;">🌙</button>
+  </div>
+
+  <div class="restore-backup-row no-print" id="restoreBackupRow">
+    ¿Tenés un archivo de respaldo (.json)?
+    <label class="btn-ghost btn-sm" style="margin:0;cursor:pointer;display:inline-block;">Restaurar respaldo<input type="file" id="restoreBackupInput" accept=".json" style="display:none;"></label>
   </div>
 
   <div id="uploadScreen">
@@ -803,6 +855,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       <button class="btn-ghost btn-sm" id="btnNewFile">Cargar otro archivo</button>
       <button class="btn-green btn-sm" id="btnExportExcel">Exportar Excel</button>
       <button class="btn-primary btn-sm" id="btnExportPdf">Exportar PDF</button>
+      <button class="btn-ghost btn-sm" id="btnBackup" title="Descarga un archivo con todo tu progreso, por si se borra el navegador">Respaldar progreso</button>
     </div>
 
     <div class="status-tabs" id="statusTabs"></div>
@@ -911,6 +964,28 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
 <script>
 const $ = s => document.querySelector(s);
+
+// ---------- Modo oscuro / claro ----------
+function applyThemeIcon(){
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const btn = $('#btnThemeToggle');
+  if(btn){
+    btn.textContent = isDark ? '☀️' : '🌙';
+    btn.title = isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+  }
+}
+$('#btnThemeToggle').addEventListener('click', ()=>{
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if(isDark){
+    document.documentElement.removeAttribute('data-theme');
+    try{ localStorage.setItem('audit-theme','light'); }catch(e){}
+  } else {
+    document.documentElement.setAttribute('data-theme','dark');
+    try{ localStorage.setItem('audit-theme','dark'); }catch(e){}
+  }
+  applyThemeIcon();
+});
+applyThemeIcon();
 const STORAGE_KEY = 'red-audit-dataset';
 const STATUS_LABEL = {pendiente:'Pendiente', conforme:'Conforme', no_conforme:'No conforme', no_encontrado:'No encontrado'};
 
@@ -974,6 +1049,53 @@ function saveState(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({rows, coverInfo, fieldNotes, savedAt: Date.now()})); }
   catch(err){ console.error('No se pudo guardar localmente', err); }
 }
+
+// ---------- Respaldo descargable (.json) — por si se borra el caché del navegador ----------
+function downloadBackup(){
+  if(!rows.length){
+    alert('Todavía no hay ninguna verificación cargada para respaldar.');
+    return;
+  }
+  const payload = {rows, coverInfo, fieldNotes, savedAt: Date.now(), backup: true};
+  const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `respaldo_verificacion_red_${coverInfo.sitio||''}_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+$('#btnBackup').addEventListener('click', downloadBackup);
+
+$('#restoreBackupInput').addEventListener('change', e=>{
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(!data.rows || !Array.isArray(data.rows) || !data.rows.length){
+        alert('Este archivo no parece ser un respaldo válido de la herramienta (no tiene activos).');
+        return;
+      }
+      rows = data.rows;
+      coverInfo = data.coverInfo || {};
+      fieldNotes = data.fieldNotes || [];
+      saveState();
+      $('#restoreBackupRow').style.display='none';
+      $('#uploadScreen').style.display='none';
+      $('#auditScreen').style.display='block';
+      renderAll();
+    }catch(err){
+      console.error(err);
+      alert('No se pudo leer el archivo de respaldo. Asegúrate de elegir el .json que descargaste con "Respaldar progreso".');
+    }
+  };
+  reader.readAsText(file);
+});
 
 // ---------- Carga de archivo ----------
 let pendingFile = null;
@@ -1050,6 +1172,7 @@ async function processUpload(){
 
   saveState();
   $('#uploadScreen').style.display = 'none';
+  $('#restoreBackupRow').style.display = 'none';
   $('#auditScreen').style.display = 'block';
   renderAll();
 }
@@ -1069,6 +1192,7 @@ async function processUpload(){
     coverInfo = data.coverInfo || {};
     fieldNotes = data.fieldNotes || [];
     $('#uploadScreen').style.display = 'none';
+    $('#restoreBackupRow').style.display = 'none';
     $('#auditScreen').style.display = 'block';
     renderAll();
   }catch(err){ console.error(err); }
@@ -1086,6 +1210,7 @@ function resetToUpload(){
   $('#btnProcess').textContent = 'Cargar y comenzar verificación';
   $('#auditScreen').style.display = 'none';
   $('#uploadScreen').style.display = 'block';
+  $('#restoreBackupRow').style.display = 'flex';
 }
 $('#btnNewFile').addEventListener('click', resetToUpload);
 $('#btnNewFile2').addEventListener('click', resetToUpload);
