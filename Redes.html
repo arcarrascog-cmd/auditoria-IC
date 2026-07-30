@@ -489,13 +489,12 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     <table>
       <thead>
         <tr>
-          <th style="width:18%">Activo</th>
-          <th style="width:14%">TAG (verificar)</th>
-          <th style="width:14%">Número de Serie (verificar)</th>
-          <th style="width:10%">¿Ubicación OK?</th>
-          <th style="width:10%">¿Rack OK?</th>
-          <th style="width:9%">Estado</th>
-          <th style="width:25%">Observaciones</th>
+          <th style="width:20%">TAG (verificar)</th>
+          <th style="width:16%">Número de Serie (verificar)</th>
+          <th style="width:12%">¿Ubicación OK?</th>
+          <th style="width:12%">¿Rack OK?</th>
+          <th style="width:10%">Estado</th>
+          <th style="width:30%">Observaciones</th>
         </tr>
       </thead>
       <tbody id="tableBody"></tbody>
@@ -1213,7 +1212,6 @@ function renderTable(){
   const data = filteredRows();
   $('#tableBody').innerHTML = data.map(r=>`
     <tr data-id="${r.id}">
-      <td data-label="Activo">${escapeHtml(r.activo)}<span class="sys-val">${escapeHtml(r.categoria)}</span></td>
       <td data-label="TAG (verificar)">
         <div class="verif-row">
           <input class="field-input tag-input ${mismatch(r.tagFisico,r.tagSistema)?'mismatch':''}" data-id="${r.id}" data-field="tagFisico" value="${escapeHtml(r.tagFisico)}" placeholder="${escapeHtml(r.tagSistema)}">
@@ -1222,7 +1220,7 @@ function renderTable(){
             <button type="button" class="verif-btn no ${r.tagVerificado==='no'?'active':''}" data-value="no" title="Incorrecto">✕</button>
           </div>
         </div>
-        <span class="sys-val">Sistema: ${escapeHtml(r.tagSistema)||'—'}</span>
+        <span class="sys-val">Sistema: ${escapeHtml(r.tagSistema)||'—'} · ${escapeHtml(r.activo)}</span>
       </td>
       <td data-label="Número de Serie (verificar)">
         <div class="verif-row">
@@ -1268,7 +1266,7 @@ function renderTable(){
         ${(r.fotos && r.fotos.length) ? `<div class="obs-photos">${r.fotos.map((f,i)=>`<span class="obs-photo-thumb"><img src="${f}" onclick="window.open(this.src,'_blank')"><button type="button" class="obs-photo-del" data-id="${r.id}" data-idx="${i}" title="Quitar foto">✕</button></span>`).join('')}</div>` : ''}
       </td>
     </tr>`
-  ).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--ink-soft);padding:24px;">No hay activos que coincidan con el filtro actual.</td></tr>`;
+  ).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:24px;">No hay activos que coincidan con el filtro actual.</td></tr>`;
 
   document.querySelectorAll('.tag-input').forEach(el=>{
     el.addEventListener('input', ()=>{ updateRow(el.dataset.id, {tagFisico: el.value}); refreshMismatchStyle(el.dataset.id); });
