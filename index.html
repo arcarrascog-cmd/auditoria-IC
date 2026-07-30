@@ -759,6 +759,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   }
   .sample-value{font-size:22px;font-weight:800;color:var(--purple-dark);line-height:1.1;margin-top:2px;}
   .sample-sub{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .storage-indicator{
+    font-size:11px;color:var(--ink-soft);margin-bottom:8px;padding:4px 2px;
+  }
+  .storage-indicator.storage-warn{color:var(--amber);font-weight:700;}
+  .storage-indicator.storage-danger{color:var(--red);font-weight:800;}
   .remaining-badge{
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     width:64px;height:64px;border-radius:50%;background:var(--amber);color:#fff;
@@ -1092,6 +1097,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       <button class="btn-ghost btn-sm" id="btnEditCover">Editar datos</button>
     </div>
     <div class="cover-print-block" id="coverPrintBlock"></div>
+
+    <div class="storage-indicator no-print" id="storageIndicator">Almacenamiento local: ~0%</div>
 
     <div class="sample-panel no-print" id="samplePanel" style="display:none;">
       <div class="sample-left">
@@ -1467,10 +1474,30 @@ $('#btnEditCover').addEventListener('click', ()=>{
 // ---------- Persistencia 100% local (sin internet) ----------
 // Usa el almacenamiento propio del navegador en este computador.
 // No depende de conexión a internet ni de ningún servidor externo.
+let storageFailWarned = false;
 async function saveState(){
   try{
     localStorage.setItem(STORAGE_KEY, JSON.stringify({rows, mapping, coverData, currentSite, fieldNotes, savedAt: Date.now()}));
-  }catch(err){ console.error('No se pudo guardar localmente', err); }
+    storageFailWarned = false;
+  }catch(err){
+    console.error('No se pudo guardar localmente', err);
+    if(!storageFailWarned){
+      storageFailWarned = true;
+      alert('⚠ IMPORTANTE: el navegador se quedó sin espacio de almacenamiento y NO está guardando tu progreso desde ahora. Descargá un respaldo YA con el botón "Respaldar progreso" antes de seguir, o vas a perder lo que sigas cargando.');
+    }
+  }
+  updateStorageIndicator();
+}
+function updateStorageIndicator(){
+  const el = $('#storageIndicator');
+  if(!el) return;
+  try{
+    const size = new Blob([JSON.stringify({rows, mapping, coverData, currentSite, fieldNotes})]).size;
+    const pct = Math.min(100, Math.round((size / (5*1024*1024)) * 100));
+    el.textContent = `Almacenamiento local: ~${pct}%`;
+    el.classList.toggle('storage-warn', pct >= 60);
+    el.classList.toggle('storage-danger', pct >= 85);
+  }catch(err){ /* no crítico si falla el cálculo */ }
 }
 
 // ---------- Respaldo descargable (.json) — por si se borra el caché del navegador ----------
@@ -1627,14 +1654,14 @@ function resizeImageFile(file){
     reader.onload = e=>{ img.src = e.target.result; };
     reader.onerror = reject;
     img.onload = ()=>{
-      const maxW = 900;
+      const maxW = 700;
       const scale = Math.min(1, maxW / img.width);
       const canvas = document.createElement('canvas');
       canvas.width = img.width * scale;
       canvas.height = img.height * scale;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      resolve(canvas.toDataURL('image/jpeg', 0.6));
+      resolve(canvas.toDataURL('image/jpeg', 0.5));
     };
     img.onerror = reject;
     reader.readAsDataURL(file);
@@ -1861,6 +1888,7 @@ function renderAll(){
   renderStats();
   renderTable();
   updateNotesBadge();
+  updateStorageIndicator();
 }
 // ---------- Tamaño de muestra (QUA-FOR-040, 95% confianza, p=q=50%) ----------
 let marginError = 0.08;
@@ -2261,10 +2289,10 @@ $('#btnExportExcel').addEventListener('click', ()=>{
       'Elemento de configuración': r.elementoConfig,
       'Estado ServiceNow': r.estadoOriginal,
       'TAG Sistema (ServiceNow)': r.tagSistema,
-      'TAG Verificado en terreno': r.tagFisico,
+      'TAG Verificado en terreno': verifDisplay(r.tagFisico, r.tagSistema, r.tagVerificado),
       'TAG correcto': VERIF_LABEL[verifState(r.tagFisico, r.tagSistema, r.tagVerificado)] || '',
       'Serial Sistema (ServiceNow)': r.serialSistema,
-      'Serial Verificado en terreno': r.serialFisico,
+      'Serial Verificado en terreno': verifDisplay(r.serialFisico, r.serialSistema, r.serialVerificado),
       'Serial correcto': VERIF_LABEL[verifState(r.serialFisico, r.serialSistema, r.serialVerificado)] || '',
       'Ubicación correcta': r.ubicacionCorrecta || '',
       'Resultado auditoría': STATUS_LABEL[r.estado],
@@ -2471,7 +2499,7 @@ $('#btnExportPdf').addEventListener('click', async ()=>{
         startY: yCursor,
         head: [['Activo','TAG Sistema','TAG Verificado','Serial Sistema','Serial Verificado','Motivo','Observaciones']],
         body: exceptions.map(r=>[
-          r.activo, r.tagSistema, r.tagFisico || '—', r.serialSistema, r.serialFisico || '—',
+          r.activo, r.tagSistema, verifDisplay(r.tagFisico, r.tagSistema, r.tagVerificado) || '—', r.serialSistema, verifDisplay(r.serialFisico, r.serialSistema, r.serialVerificado) || '—',
           exceptionReasons(r).join(', '), r.observaciones
         ]),
         styles: {fontSize:7.5, cellPadding:1.5, minCellHeight:9},
@@ -2502,7 +2530,7 @@ $('#btnExportPdf').addEventListener('click', async ()=>{
       startY: yCursor,
       head: [['Activo','TAG Sistema','TAG Verificado','Serial Sistema','Serial Verificado','Ubicación OK','Estado','Observaciones']],
       body: reviewed.map(r=>[
-        r.activo, r.tagSistema, r.tagFisico, r.serialSistema, r.serialFisico,
+        r.activo, r.tagSistema, verifDisplay(r.tagFisico, r.tagSistema, r.tagVerificado) || '—', r.serialSistema, verifDisplay(r.serialFisico, r.serialSistema, r.serialVerificado) || '—',
         r.ubicacionCorrecta || '—', STATUS_LABEL[r.estado], r.observaciones
       ]),
       styles: {fontSize:7.5, cellPadding:1.5, minCellHeight:9},
@@ -2676,6 +2704,14 @@ function isGenericLocationWord(loc){
   return false;
 }
 function escapeWord(s){ return escapeHtml(s); }
+// Si el auditor marcó ✓/✕ sin volver a escribir el valor (porque ya coincidía),
+// esto evita que el informe muestre "—" como si nunca se hubiera revisado.
+function verifDisplay(fisico, sistema, manual){
+  if(fisico) return fisico;
+  if(manual === 'ok') return `✓ ${sistema} (coincide)`;
+  if(manual === 'no') return '✗ No coincide (ver observaciones)';
+  return '';
+}
 
 // ---------- Exportar solo "Brechas de datos" — documento corto para el admin de ServiceNow ----------
 $('#btnExportGaps').addEventListener('click', async ()=>{
@@ -2868,7 +2904,7 @@ function buildWordReport(){
       if(r.ubicacionCorrecta==='No') motivos.push('Ubicación incorrecta');
       if(r.estado==='no_conforme' && !motivos.length) motivos.push('No conforme');
       if(r.estado==='no_encontrado') motivos.push('No encontrado');
-      html += `<tr class="rowbad"><td>${escapeWord(r.activo)}</td><td>${escapeWord(r.tagSistema)}</td><td>${escapeWord(r.tagFisico)||'—'}</td><td>${escapeWord(r.serialSistema)}</td><td>${escapeWord(r.serialFisico)||'—'}</td><td>${escapeWord(motivos.join(', '))}</td><td>${escapeWord(r.observaciones)}</td></tr>`;
+      html += `<tr class="rowbad"><td>${escapeWord(r.activo)}</td><td>${escapeWord(r.tagSistema)}</td><td>${escapeWord(verifDisplay(r.tagFisico, r.tagSistema, r.tagVerificado))||'—'}</td><td>${escapeWord(r.serialSistema)}</td><td>${escapeWord(verifDisplay(r.serialFisico, r.serialSistema, r.serialVerificado))||'—'}</td><td>${escapeWord(motivos.join(', '))}</td><td>${escapeWord(r.observaciones)}</td></tr>`;
     });
     html += `</table>`;
 
@@ -2876,7 +2912,7 @@ function buildWordReport(){
 <table><tr><th>Activo</th><th>TAG Sistema</th><th>TAG Verificado</th><th>Serial Sistema</th><th>Serial Verificado</th><th>Ubicación OK</th><th>Estado</th><th>Observaciones</th></tr>`;
     reviewed.forEach(r=>{
       const cls = r.estado==='no_conforme' ? ' class="rowbad"' : '';
-      html += `<tr${cls}><td>${escapeWord(r.activo)}</td><td>${escapeWord(r.tagSistema)}</td><td>${escapeWord(r.tagFisico)||'—'}</td><td>${escapeWord(r.serialSistema)}</td><td>${escapeWord(r.serialFisico)||'—'}</td><td>${escapeWord(r.ubicacionCorrecta)||'—'}</td><td>${escapeWord(STATUS_LABEL[r.estado])}</td><td>${escapeWord(r.observaciones)}</td></tr>`;
+      html += `<tr${cls}><td>${escapeWord(r.activo)}</td><td>${escapeWord(r.tagSistema)}</td><td>${escapeWord(verifDisplay(r.tagFisico, r.tagSistema, r.tagVerificado))||'—'}</td><td>${escapeWord(r.serialSistema)}</td><td>${escapeWord(verifDisplay(r.serialFisico, r.serialSistema, r.serialVerificado))||'—'}</td><td>${escapeWord(r.ubicacionCorrecta)||'—'}</td><td>${escapeWord(STATUS_LABEL[r.estado])}</td><td>${escapeWord(r.observaciones)}</td></tr>`;
     });
     html += `</table>`;
 
